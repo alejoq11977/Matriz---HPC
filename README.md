@@ -13,7 +13,7 @@ El proyecto se desarrolla de manera modular a través de múltiples ramas (*bran
 | Rama / Branch | Descripción y Estado | Enfoque Principal |
 | :--- | :--- | :--- |
 | **`main`** | **Rama Principal** *(Estás aquí)* | Visión general del proyecto, índice y documentación central. |
-| `entrega-1` | **Versión Inicial Base** | Implementación clásica secuencial ($O(N^3)$) con asignación dinámica de memoria y lectura de parámetros por CLI. |
+| `version-inicial` | **Versión Inicial Base** | Implementación clásica secuencial ($O(N^3)$) con asignación dinámica de memoria y lectura de parámetros por CLI. |
 
 ---
 
