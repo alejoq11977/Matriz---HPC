@@ -14,10 +14,10 @@ El proyecto se desarrolla de manera modular a través de múltiples ramas (*bran
 | :--- | :--- | :--- |
 | **`main`** | **Rama Principal** *(Estás aquí)* | Visión general del proyecto, índice y documentación central. |
 | `version-inicial` | **Versión Inicial Base** | Implementación clásica secuencial ($O(N^3)$) con asignación dinámica de memoria y lectura de parámetros por CLI. |
+| `clock-time` | **Segunda Entrega** | Incorporación de la medición de tiempo de ejecución exclusivo de la multiplicación mediante distintos métodos (`clock()`, `timespec_get()`, `CLOCK_MONOTONIC`). |
 
 ---
 
 ## 🚀 Guía de Navegación por Ramas
 
 Para revisar el código fuente, la documentación específica y los experimentos de cada fase, puedes cambiar de rama en el repositorio local o mediante la interfaz de GitHub.
-
