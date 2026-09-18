@@ -49,6 +49,9 @@ int main(int argc, char *argv[]) {
         C[i] = 0;
     }
 
+    // Variable para almacenar el tiempo inicial
+    clock_t inicio = clock();
+
     // Multiplicación de matrices
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
@@ -60,10 +63,16 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // No imprimimos las matrices porque pueden ser enormes
+    // Variable para almacenar el tiempo final
+    clock_t fin = clock();
+
+    // Calcular el tiempo utilizado por el proceso
+    double tiempo = (double)(fin - inicio) / CLOCKS_PER_SEC;
+
     printf("Multiplicacion completada.\n");
     printf("Tamano de las matrices: %d x %d\n", N, N);
     printf("Valor maximo utilizado: %d\n", valor_maximo);
+    printf("Tiempo medido con clock(): %.6f segundos\n", tiempo);
 
     // Liberar la memoria
     free(A);
