@@ -19,6 +19,8 @@ Para experimentar con diferentes mecanismos de medición, se crearon tres archiv
 * **`matriz_monotonic.c`**  
   Esta versión utiliza `clock_gettime()` con `CLOCK_MONOTONIC`. Esta función corresponde a una interfaz POSIX disponible en Linux y permite consultar un reloj monotónico, diseñado para medir el tiempo transcurrido sin depender de modificaciones que puedan hacerse sobre la hora del sistema. Por esta razón, resulta especialmente interesante para mediciones de duración de una operación.
 
+> **Aclaración:** las versiones `matriz_clock.c` y `matriz_timespec.c` se conservan en este repositorio únicamente como referencia conceptual de los otros dos mecanismos de medición. De aquí en adelante la versión de trabajo es `matriz_monotonic`, que es la que se modularizó y la única que se mantiene y evoluciona. Las otras dos versiones no se seguirán utilizando en las próximas entregas.
+
 ---
 
 ## Pruebas realizadas
@@ -52,3 +54,69 @@ En esta etapa no se busca determinar todavía cuál de las tres alternativas es 
 La existencia de tres archivos permite conservar las tres implementaciones y utilizarlas como referencia para el análisis posterior. Más adelante, cuando se introduzcan nuevas técnicas de optimización o paralelización, estas mediciones podrán servir como punto de comparación para determinar cómo cambia el rendimiento de la multiplicación de matrices.
 
 Esta versión, por tanto, constituye una primera aproximación experimental a la medición del rendimiento del programa, manteniendo sin cambios el algoritmo de multiplicación utilizado en la versión inicial.
+
+---
+
+## Modularización de `matriz_monotonic`
+
+Para mejorar la organización del código, la versión `matriz_monotonic` se separó en tres módulos con responsabilidades bien definidas. Cada uno expone su interfaz en un archivo `.h` y guarda su implementación en un `.c`.
+
+* **`memoria`** — cálculo de la cantidad total de elementos (`N * N`), reserva de memoria para las tres matrices (`A`, `B`, `C`) y verificación de que la reserva se realizó correctamente.
+* **`llenado`** — inicialización del generador de números aleatorios (`srand`/`rand`) y llenado de las matrices `A` y `B` con valores aleatorios, además de inicializar `C` en cero.
+* **`tiempo_mult`** — toma del tiempo inicial con `clock_gettime(CLOCK_MONOTONIC)`, ejecución de los tres ciclos `for` anidados de la multiplicación, y obtención del tiempo final para devolver el tiempo medido en segundos.
+
+Como consecuencia, `matriz_monotonic.c` queda reducido a un `main` que valida los argumentos, llama a los módulos en orden y muestra los resultados por pantalla.
+
+---
+
+## Estructura del proyecto
+
+```
+mult_matriz/
+├── Makefile
+├── README.md
+├── .gitignore
+├── src/             # archivos .c con los main() de cada versión
+│   ├── matriz_monotonic.c
+│   ├── matriz_clock.c
+│   └── matriz_timespec.c
+├── include/         # cabeceras (.h) de los módulos
+│   ├── memoria.h
+│   ├── llenado.h
+│   └── tiempo_mult.h
+├── modules/         # implementaciones (.c) de los módulos
+│   ├── memoria.c
+│   ├── llenado.c
+│   └── tiempo_mult.c
+└── bin/             # binarios compilados (generados por make, no se versionan)
+```
+
+### Tipos de archivo
+
+* **`.c`** — implementación en C. Contiene el código que efectivamente realiza el trabajo.
+* **`.h`** — cabecera. Contiene **declaraciones** de funciones, tipos y constantes; es el "contrato público" del módulo. Todo `.c` que lo incluya puede usar lo declarado ahí.
+* **`Makefile`** — script de compilación. Define las reglas que usa `make` para transformar los fuentes en el binario.
+* **`.gitignore`** — lista de archivos y carpetas que `git` debe ignorar (por ejemplo, los binarios compilados).
+
+En C, cada `.c` se compila por separado, y los `.h` son los que permiten que un archivo pueda usar funciones definidas en otro sin tener que volver a declararlas a mano.
+
+---
+
+## Compilación y ejecución
+
+Toda la gestión del proyecto se hace desde la raíz con `make`.
+
+| Comando | Qué hace |
+| :--- | :--- |
+| `make` o `make all` | Compila `matriz_monotonic` y deja el binario en `bin/`. |
+| `make run <N> <valor_maximo>` | Compila si hace falta y ejecuta el binario con esos argumentos. |
+| `make clean` | Borra el binario generado. |
+
+Ejemplo:
+
+```bash
+make clean
+make run 200 10
+```
+
+Los argumentos `<N>` y `<valor_maximo>` son los mismos de siempre: tamaño de la matriz cuadrada y tope superior (exclusivo) del rango aleatorio para los valores de `A` y `B`.
