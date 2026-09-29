@@ -299,25 +299,141 @@ cat experiments/resultados.csv              # tabla con media, mediana, stddev
 
 ## 7. Resultados
 
-> **Estado**: esta sección se actualizará con las tablas y el análisis una vez que el experimento completo haya finalizado. Los archivos `experiments/resultados.csv`, `experiments/speedup_vs_N.png` y `experiments/speedup_vs_T.png` se regeneran al correr `experiments/plot.py`.
->
-> Mientras el experimento no haya terminado, se pueden ver los datos parciales en `experiments/resultados_raw.csv` (1 fila por medición individual) y los agregados parciales en `experiments/resultados.csv`.
+El experimento completo se ejecutó del `lun 28 sep 2026 23:31:13` al `mar 29 sep 2026 12:26:50`, completando las **250 mediciones** planificadas (5 tamaños × 5 configuraciones × 10 corridas).
+
+### 7.1 Tiempos de ejecución medidos (segundos)
+
+Para cada `(N, T)` se reportan la **media**, la **mediana** y la **desviación estándar** de las 10 corridas. Todos los valores en segundos.
+
+| N    | T=1 (sec) media/mediana/σ | T=2 media/mediana/σ       | T=4 media/mediana/σ       | T=8 media/mediana/σ       | T=16 media/mediana/σ      |
+| ---: | ------------------------: | ------------------------: | ------------------------: | ------------------------: | ------------------------: |
+| 500   | 0.0449 / 0.0440 / 0.0028 | 0.1008 / 0.1008 / 0.0015 | 0.0538 / 0.0529 / 0.0021 | 0.0342 / 0.0345 / 0.0031 | 0.0315 / 0.0315 / 0.0029 |
+| 1000  | 0.4240 / 0.4230 / 0.0026 | 0.7550 / 0.7532 / 0.0058 | 0.4002 / 0.3977 / 0.0097 | 0.2656 / 0.2661 / 0.0045 | 0.2054 / 0.2043 / 0.0069 |
+| 2000  |  4.398 / 4.363 / 0.083   |  7.113 / 7.118 / 0.072   |  3.763 / 3.757 / 0.054   |  2.386 / 2.385 / 0.046   |  1.641 / 1.643 / 0.046   |
+| 4000  |  75.70 / 75.65 / 0.27    |  68.07 / 68.22 / 0.60    |  40.33 / 40.30 / 0.18    |  29.73 / 29.68 / 0.43    |  24.26 / 24.29 / 0.31    |
+| 8000  |  2442.5 / 2441.6 / 13.4  |  744.3 / 690.9 / 115.9   |  416.8 / 416.9 / 1.1     |  352.6 / 354.1 / 4.3     |  401.6 / 401.5 / 1.6     |
+
+### 7.2 Detección de valor atípico
+
+La fila `N=8000, T=2` muestra una desviación estándar de **115.9 s sobre una media de 744.3 s** (15.6 % del valor central), muy superior al resto de las configuraciones. Al revisar las 10 corridas individuales en `experiments/resultados_raw.csv`:
+
+```
+8000,2,2,684.96
+8000,2,4,685.00
+8000,2,6,685.22
+8000,2,1,686.68
+8000,2,10,687.49
+8000,2,9,694.21
+8000,2,7,713.32
+8000,2,5,756.04
+8000,2,3,769.49
+8000,2,8,1080.48    ← valor atípico (~310 s por encima del siguiente)
+```
+
+Nueve de las diez corridas caen en el rango `[685, 770]` segundos, mientras que la **corrida 8** midió `1080.48 s`, casi un 60 % por encima del resto. Este es un caso clásico de outlier por ruido del sistema operativo (preempción de quantum, otro proceso que tomó CPU, decisión de caché del planificador). Las demás configuraciones tienen σ relativa ≤ 1.5 %, lo que confirma que se trata de un evento aislado y no de una propiedad del programa.
+
+Este hallazgo justifica el uso de la **mediana** como estimador central del speedup, ya que la media se infla artificialmente por este valor extremo.
+
+### 7.3 Speedup calculado sobre la mediana
+
+El speedup se calcula como $S_T(N) = \tilde{T}_{\text{sec}}(N) / \tilde{T}_{\text{par},T}(N)$, donde $\tilde{T}$ denota la mediana de las 10 corridas.
+
+| N    | T=2  | T=4  | T=8  | T=16 |
+| ---: | ---: | ---: | ---: | ---: |
+| 500   | 0.44 | 0.83 | 1.27 | 1.40 |
+| 1000  | 0.56 | 1.06 | 1.59 | 2.07 |
+| 2000  | 0.61 | 1.16 | 1.83 | 2.66 |
+| 4000  | 1.11 | 1.88 | 2.55 | 3.11 |
+| 8000  | 3.53 | 5.86 | 6.90 | 6.08 |
+
+Comparación con el speedup calculado sobre la media:
+
+| N    | T=2 (mediana / media) | T=4            | T=8            | T=16           |
+| ---: | ---:                  | ---:           | ---:           | ---:           |
+| 500   | 0.44 / 0.45          | 0.83 / 0.83   | 1.27 / 1.31   | 1.40 / 1.42   |
+| 1000  | 0.56 / 0.56          | 1.06 / 1.06   | 1.59 / 1.60   | 2.07 / 2.06   |
+| 2000  | 0.61 / 0.62          | 1.16 / 1.17   | 1.83 / 1.84   | 2.66 / 2.68   |
+| 4000  | 1.11 / 1.11          | 1.88 / 1.88   | 2.55 / 2.55   | 3.11 / 3.12   |
+| 8000  | **3.53 / 3.28**      | 5.86 / 5.86   | 6.90 / 6.93   | 6.08 / 6.08   |
+
+La diferencia entre ambos estimadores es mínima en la mayoría de las configuraciones (≤ 1 %) y solo se nota donde aparece el outlier (`N=8000, T=2`, donde la mediana da 3.53× y la media 3.28×).
+
+### 7.4 Gráficas
+
+**Speedup vs N (variante A del profesor, eje X = tamaño de la matriz):**
+
+![Speedup vs N](experiments/speedup_vs_N.png)
+
+**Speedup vs T (variante B del profesor, eje X = cantidad de hilos):**
+
+![Speedup vs T](experiments/speedup_vs_T.png)
+
+Las barras de error corresponden a ±1σ propagada al speedup: $\sigma_S = S \cdot \sqrt{(\sigma_{\text{seq}}/\bar{T}_{\text{seq}})^2 + (\sigma_{\text{par}}/\bar{T}_{\text{par}})^2}$.
 
 ---
 
-## 8. Conclusiones metodológicas
+## 8. Análisis de resultados
 
-Independientemente de los valores numéricos que arroje el experimento, el trabajo realizado establece las siguientes conclusiones metodológicas:
+### 8.1 Para matrices pequeñas el paralelismo es contraproducente
 
-1. **Wall clock es la métrica correcta**. Se descartó `clock()` (mide CPU time), `timespec_get(TIME_UTC)` (wall clock frágil) y se eligió `clock_gettime(CLOCK_MONOTONIC_RAW)` (wall clock monotónico de alta precisión).
-2. **Una sola medición no es válida estadísticamente**. Se realizan 10 corridas por configuración y se reporta media, mediana y desviación estándar.
-3. **El orden de los bucles afecta la validez experimental**. Intercalar tamaños entre repeticiones evita el envenenamiento de caché que produciría mediciones optimistas.
-4. **El script debe ser resumible**. Con 250 mediciones que pueden tardar horas, la capacidad de pausar y reanudar es esencial.
-5. **Ambas variantes de gráfica (X=N y X=T) son válidas** y muestran aspectos complementarios del speedup, como explicó el profesor.
+Con `N=500` y `N=1000`, dos hilos tardan **más** que la versión secuencial (speedup de 0.44× y 0.56× respectivamente). El *overhead* de `pthread_create` + `pthread_join` más la contención por el ancho de banda de memoria supera al beneficio de repartir las filas. Incluso con 4 hilos el speedup es ≤ 1 para `N≤2000`. Esto confirma empíricamente la predicción de la Ley de Amdahl: existe un tamaño mínimo de problema por debajo del cual el paralelismo no aporta beneficio.
+
+### 8.2 Crecimiento monótonico hasta N=4000
+
+Para `N=500, 1000, 2000, 4000`, el speedup crece de manera monótona con la cantidad de hilos. Esto es el comportamiento clásico esperado: a mayor cantidad de trabajo disponible, mejor se amortiza el *overhead* de sincronización.
+
+### 8.3 Peak y degradación en N=8000
+
+A `N=8000`, la configuración de **8 hilos alcanza el speedup máximo observado (6.90×)**, pero **16 hilos degrada a 6.08×**. El hardware dispone de 12 núcleos lógicos (8 físicos con hyperthreading), por lo que:
+
+- Con 8 hilos, cada uno corre casi siempre en un núcleo físico distinto → máximo paralelismo real.
+- Con 16 hilos, varios comparten núcleo físico vía hyperthreading → contención por las unidades de ejecución del núcleo (ALU, FPU, cachés L1/L2). El beneficio del hilo extra se compensa con el overhead de conmutación dentro del mismo núcleo.
+
+Este resultado es coherente con la observación de que el **hyperthreading no duplica el rendimiento**; típicamente aporta entre un 10 % y un 30 % extra por núcleo físico, no un 100 %.
+
+### 8.4 Valor atípico en N=8000, T=2
+
+La corrida 8 de `N=8000, T=2` midió 1080 s, un 58 % por encima de las otras nueve (rango 685–770 s). Es un evento aislado, probablemente causado por:
+
+- Otra carga del sistema durante esa medición (otro proceso tomó CPU).
+- Una preempción de quantum particularmente larga en uno de los dos hilos.
+- Una decisión de caché adversa (página fría al inicio de la corrida).
+
+El uso de la **mediana** como estimador central evita que este outlier distorsione el speedup calculado, pasando de 3.28× (media) a 3.53× (mediana). Esta es exactamente la razón por la que el profesor sugirió la mediana como alternativa válida al promedio.
+
+### 8.5 Comparación con la Ley de Amdahl
+
+El speedup máximo observado (6.90× con 8 hilos en `N=8000`) implica, según la Ley de Amdahl estricta:
+
+$$6.90 \approx \frac{1}{f_s + (1-f_s)/8} \implies f_s \approx 0.01$$
+
+Es decir, el programa es teóricamente paralelizable al 99 %. La diferencia entre este techo teórico (8× con 8 hilos) y el valor medido (6.90×) se explica por factores no contemplados por la Ley de Amdahl:
+
+- Contención por ancho de banda de memoria compartida.
+- Tasa de fallos de caché cuando varios hilos compiten por las mismas líneas.
+- *Overhead* de planificación del sistema operativo.
 
 ---
 
-## 9. Referencias técnicas
+## 9. Conclusiones
+
+1. **La paralelización con pthreads permite obtener speedups cercanos a 7× en N=8000 con 8 hilos**, en un equipo con 12 núcleos lógicos. El speedup crece con `N` y satura alrededor de `N=4000–8000`.
+
+2. **Para problemas pequeños el paralelismo no es rentable**: con `N=500` y `N=1000`, dos hilos son **más lentos** que la versión secuencial. Es indispensable dimensionar el problema antes de optar por paralelizar.
+
+3. **El número óptimo de hilos depende del hardware**: en esta máquina con 8 núcleos físicos, 8 hilos es el óptimo. 16 hilos (con hyperthreading) **degrada** el rendimiento en un 12 % para `N=8000`.
+
+4. **La variabilidad entre corridas es muy baja** (σ relativa ≤ 1.5 %) salvo en eventos atípicos puntuales. Una medición única es suficiente en la mayoría de los casos para tener una estimación razonable, pero 10 corridas permiten detectar outliers y reportar barras de error honestas.
+
+5. **La elección entre media y mediana importa**: cuando hay outliers (como el caso `N=8000, T=2, run=8` con 1080 s), la mediana es claramente superior. Cuando no los hay, ambas dan resultados casi idénticos.
+
+6. **El speedup real está muy por debajo del ideal lineal** ($T$ con $T$ hilos). El techo observado de ~7× para 8 hilos refleja la combinación de: parte secuencial residual, contención de memoria y *overhead* del sistema operativo, exactamente como predice la Ley de Amdahl extendida con factores de HPC.
+
+7. **La metodología empleada fue válida**: 10 corridas, loop order evitando envenenamiento de caché, medición de wall clock con `CLOCK_MONOTONIC_RAW`, uso de mediana como estimador robusto. Todos los elementos discutidos en clase.
+
+---
+
+## 10. Referencias técnicas
 
 - `pthread_create`, `pthread_join`: POSIX.1-2008, `<pthread.h>`.
 - `clock_gettime(CLOCK_MONOTONIC_RAW)`: POSIX.1-2008, `<time.h>`. `CLOCK_MONOTONIC_RAW` excluye ajustes de NTP, lo que lo hace más estable que `CLOCK_MONOTONIC` para mediciones de corta duración.

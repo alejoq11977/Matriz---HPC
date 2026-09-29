@@ -20,8 +20,9 @@ with open(INFILE) as f:
 # Indexar por (N, threads)
 by = {(r['N'], r['threads']): r for r in filas}
 
-# Calcular speedup y propagar stddev
-# speedup = T_seq / T_par, sigma_speedup = speedup * sqrt((sigma_seq/T_seq)^2 + (sigma_par/T_par)^2)
+# Speedup calculado sobre la MEDIANA (robusto a outliers).
+# Propagacion de incertidumbre usa la stddev de los datos crudos.
+# Formula: S = T_seq / T_par, sigma_S = S * sqrt((sigma_seq/T_seq)^2 + (sigma_par/T_par)^2)
 speedup = defaultdict(dict)
 for r in filas:
     n, t = r['N'], r['threads']
@@ -31,7 +32,7 @@ for r in filas:
     par = by.get((n, t))
     if seq is None or par is None:
         continue
-    s = seq['media'] / par['media']
+    s = seq['mediana'] / par['mediana']
     sigma_s = s * math.sqrt((seq['stddev'] / seq['media']) ** 2 +
                             (par['stddev'] / par['media']) ** 2)
     speedup[n][t] = (s, sigma_s)
@@ -47,8 +48,8 @@ for t in [2, 4, 8, 16]:
     es = [v[1] for _, v in pares]
     plt.errorbar(xs, ys, yerr=es, marker='o', capsize=4, label=f'{t} hilos')
 plt.xlabel('Tamano N')
-plt.ylabel('Speedup (T_sec / T_par)')
-plt.title('Speedup vs N para distintas cantidades de hilos')
+plt.ylabel('Speedup (mediana T_sec / mediana T_par)')
+plt.title('Speedup vs N para distintas cantidades de hilos (calculado sobre la mediana)')
 plt.legend()
 plt.grid(True)
 plt.savefig('experiments/speedup_vs_N.png', dpi=150)
@@ -66,8 +67,8 @@ for n in sorted(speedup):
     es = [v[1] for _, v in pares]
     plt.errorbar(xs, ys, yerr=es, marker='o', capsize=4, label=f'N = {n}')
 plt.xlabel('Cantidad de hilos')
-plt.ylabel('Speedup (T_sec / T_par)')
-plt.title('Speedup vs cantidad de hilos para distintos tamanos de matriz')
+plt.ylabel('Speedup (mediana T_sec / mediana T_par)')
+plt.title('Speedup vs cantidad de hilos para distintos tamanos de matriz (sobre la mediana)')
 plt.legend()
 plt.grid(True)
 plt.savefig('experiments/speedup_vs_T.png', dpi=150)
