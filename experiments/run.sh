@@ -54,13 +54,11 @@ truncar_parcial() {
 measure() {
     local n=$1 t=$2 run_id=$3
     local t_value
-    local bin
     if [ "$t" = "1" ]; then
-        bin="./bin/matriz_monotonic"
+        t_value=$(./bin/matriz_monotonic "$n" "$VALOR_MAXIMO" | grep -oP 'Tiempo.*: \K[0-9.]+')
     else
-        bin="./bin/matriz_pthreads"
+        t_value=$(./bin/matriz_pthreads "$n" "$VALOR_MAXIMO" "$t" | grep -oP 'Tiempo.*: \K[0-9.]+')
     fi
-    t_value=$("$bin" "$n" "$VALOR_MAXIMO" "$t" | grep -oP 'Tiempo.*: \K[0-9.]+')
     echo "$n,$t,$run_id,$t_value" >> "$RAW"
     echo "  [$(date +%H:%M:%S)] N=$n hilos=$t run=$run_id tiempo=$t_value" | tee -a "$LOG"
 }
@@ -74,25 +72,17 @@ for t in "${HILOS[@]}"; do
     echo "" | tee -a "$LOG"
     echo "=== Configuracion: $t hilo(s) ===" | tee -a "$LOG"
 
-    # Si hay corridas parciales (interrupcion previa), las borramos y rehacemos
-    actuales=$(count_runs "$t" "$t" 2>/dev/null || echo 0)
-    actuales=$(count_runs 500 "$t")
-    if [ "$actuales" -gt 0 ] && [ "$actuales" -lt "$RUNS" ]; then
-        echo "  Detectadas $actuales corridas parciales para hilos=$t, truncando..." | tee -a "$LOG"
-        truncar_parcial 500 "$t"
-    fi
-
     for run_id in $(seq 1 $RUNS); do
         # Outer loop = repeticiones, inner loop = tamanos
         for n in "${TAMANOS[@]}"; do
-            actuales=$(count_runs "$n" "$t")
-            if [ "$actuales" -ge "$RUNS" ]; then
-                continue  # ya estan las 10 corridas de este (N, T)
+            # Verificar si esta corrida especifica (n, t, run_id) ya existe y tiene tiempo valido
+            if grep -qE "^${n},${t},${run_id},[0-9]" "$RAW" 2>/dev/null; then
+                continue  # ya esta completa, saltar
             fi
-            if [ "$actuales" -gt 0 ]; then
-                # corridas parciales -> rehacer desde 1
-                echo "  Detectadas $actuales corridas parciales para N=$n hilos=$t, truncando..." | tee -a "$LOG"
-                truncar_parcial "$n" "$t"
+            # Si existe la corrida pero sin tiempo valido (interrumpida), la borramos
+            if grep -q "^${n},${t},${run_id}," "$RAW" 2>/dev/null; then
+                sed -i "/^${n},${t},${run_id},/d" "$RAW"
+                echo "  Corrida incompleta detectada para N=$n hilos=$t run=$run_id, reintentando..." | tee -a "$LOG"
             fi
 
             measure "$n" "$t" "$run_id"
