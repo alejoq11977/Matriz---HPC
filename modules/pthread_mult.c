@@ -46,7 +46,7 @@ double multiplicar_pthreads(int *A, int *B, int *C, int N, int num_hilos) {
     }
 
     struct timespec inicio, fin;
-    clock_gettime(CLOCK_MONOTONIC, &inicio);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &inicio);
 
     for (int t = 0; t < num_hilos; t++) {
         pthread_create(&hilos[t], NULL, worker, &args[t]);
@@ -56,7 +56,7 @@ double multiplicar_pthreads(int *A, int *B, int *C, int N, int num_hilos) {
         pthread_join(hilos[t], NULL);
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &fin);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &fin);
 
     return (double)(fin.tv_sec - inicio.tv_sec) +
            (double)(fin.tv_nsec - inicio.tv_nsec) / 1e9;

@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     printf("Multiplicacion completada.\n");
     printf("Tamano de las matrices: %d x %d\n", N, N);
     printf("Valor maximo utilizado: %d\n", valor_maximo);
-    printf("Tiempo medido con CLOCK_MONOTONIC: %.9f segundos\n", tiempo);
+    printf("Tiempo medido con CLOCK_MONOTONIC_RAW: %.9f segundos\n", tiempo);
 
     free(m.A);
     free(m.B);

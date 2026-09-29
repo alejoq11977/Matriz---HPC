@@ -2,7 +2,7 @@
 
 ## Resumen
 
-En esta tercera entrega se extendió el programa de multiplicación de matrices para incorporar una versión concurrente/paralela implementada con **POSIX Threads (pthreads)** en C. La versión secuencial original — basada en el reloj monotónico `CLOCK_MONOTONIC` — se conserva como referencia y se somete a un experimento sistemático en el que se varía tanto el tamaño de la matriz (`N ∈ {500, 1000, 2000, 4000}`) como la cantidad de hilos (`T ∈ {2, 4, 8, 16}`). A partir de los tiempos medidos se calcula el *speedup* y se analiza experimentalmente el comportamiento del programa bajo paralelismo real.
+En esta tercera entrega se extendió el programa de multiplicación de matrices para incorporar una versión concurrente/paralela implementada con **POSIX Threads (pthreads)** en C. La versión secuencial original — basada en el reloj monotónico `CLOCK_MONOTONIC_RAW` — se conserva como referencia y se somete a un experimento sistemático en el que se varía el tamaño de la matriz (`N ∈ {500, 1000, 2000, 4000, 8000}`) y la cantidad de hilos (`T ∈ {2, 4, 8, 16}`), repitiendo cada configuración 10 veces para obtener promedios estadísticamente significativos. A partir de los tiempos medios se calcula el *speedup* y se analiza experimentalmente el comportamiento del programa bajo paralelismo real.
 
 ---
 
@@ -27,17 +27,39 @@ Un programa concurrente implementado con pthreads puede aprovechar paralelismo r
 | `pthread_join(tid, NULL)` | bloquea al hilo que llama hasta que `tid` termine |
 | `pthread_t` | tipo opaco que identifica a un hilo creado |
 
-### 1.3 Speedup y Ley de Amdahl
+### 1.3 Wall clock, tiempo de CPU y tiempo de sistema
+
+En Unix, la salida del comando `time programa` desglosa el tiempo consumido en:
+
+- **Wall clock** (tiempo transcurrido total): tiempo real desde que arranca hasta que termina. Incluye quantum preemptions, esperas por E/S, y tiempo de otros procesos que compartieron el CPU.
+- **Tiempo de CPU**: tiempo que la CPU pasó realmente ejecutando nuestro proceso. Se subdivide en:
+  - **Tiempo de usuario**: tiempo que la CPU pasó en código de nuestro programa.
+  - **Tiempo del sistema**: tiempo que la CPU pasó en el kernel atendiendo llamadas al sistema de nuestro proceso.
+
+El profesor de la materia indicó explícitamente que **la métrica correcta para evaluar rendimiento de una aplicación es el wall clock**, porque refleja lo que el usuario percibe como "cuánto tardó". Las otras dos métricas son útiles para *profiling* interno pero no para comparar rendimiento global.
+
+### 1.4 Mecanismos disponibles en C para medir tiempo
+
+| Mecanismo | Qué cuenta | ¿Wall clock? |
+|---|---|---|
+| `clock()` | CPU time (usuario + sistema) | ❌ No |
+| `timespec_get(TIME_UTC)` | Wall clock, pero susceptible a saltos del reloj del sistema (NTP, cambios manuales) | ⚠️ Sí, pero frágil |
+| `clock_gettime(CLOCK_MONOTONIC)` | Wall clock monotónico (no retrocede) | ✅ Sí |
+| `clock_gettime(CLOCK_MONOTONIC_RAW)` | Igual al anterior, pero excluye ajustes finos de NTP | ✅ Sí, **el más preciso** |
+
+En este proyecto se usa **`clock_gettime(CLOCK_MONOTONIC_RAW)`**, que es la opción recomendada en benchmarking HPC: es wall clock monotónico y no se ve afectado por las correcciones graduales que NTP aplica sobre el reloj del sistema.
+
+### 1.5 Speedup y Ley de Amdahl
 
 El *speedup* mide cuántas veces más rápida es la versión paralela respecto a la secuencial:
 
-$$S_T = \frac{T_{\text{secuencial}}}{T_{\text{paralelo},\,T}}$$
+$$S_T(N) = \frac{T_{\text{secuencial}}(N)}{T_{\text{paralelo},\,T}(N)}$$
 
-donde $T$ es la cantidad de hilos. El *speedup* ideal es lineal: $S_T = T$. La **Ley de Amdahl** establece que el speedup está acotado por la fracción secuencial no paralelizable del programa:
+donde `T` es la cantidad de hilos. El speedup ideal es lineal: $S_T = T$. La **Ley de Amdahl** establece que el speedup está acotado por la fracción secuencial no paralelizable del programa:
 
 $$S_T \le \frac{1}{f_s + \dfrac{1-f_s}{T}}$$
 
-donde $f_s$ es la fracción del trabajo que no puede paralelizarse (creación de hilos, sincronización, partes del algoritmo intrínsecamente secuenciales). En la práctica, además, aparecen otros factores que degradan el speedup: contención por ancho de banda de memoria, fallos de caché y sobrecarga de planificación del sistema operativo.
+donde $f_s$ es la fracción del trabajo que no puede paralelizarse. En la práctica, además, aparecen otros factores que degradan el speedup: contención por ancho de banda de memoria, fallos de caché y sobrecarga de planificación del sistema operativo.
 
 ---
 
@@ -69,26 +91,11 @@ Cada hilo escribe exclusivamente en su propio rango de filas de `C`, por lo que 
 
 ### 2.3 Medición del tiempo
 
-Se reutiliza la misma metodología de la entrega anterior: `clock_gettime(CLOCK_MONOTONIC, ...)` con `struct timespec`. El intervalo medido en la versión paralela abarca explícitamente la creación de los hilos, el trabajo paralelo y el `pthread_join` — es decir, **se mide el tiempo que tarda el usuario en obtener el resultado paralelo**, lo que incluye el *overhead* real de utilizar múltiples hilos. Esto es coherente con la versión secuencial, que mide únicamente el trabajo de multiplicación.
+Se utiliza `clock_gettime(CLOCK_MONOTONIC_RAW, ...)` con `struct timespec`. El intervalo medido en la versión paralela abarca explícitamente la creación de los hilos, el trabajo paralelo y el `pthread_join` — es decir, **se mide el wall clock total que tarda el usuario en obtener el resultado paralelo**, incluyendo el *overhead* real de utilizar múltiples hilos. Esto es coherente con la versión secuencial, que mide únicamente el trabajo de multiplicación.
 
-### 2.4 Algoritmo empleado por cada hilo
+### 2.4 Algoritmo del worker
 
-La función `worker(args)` que ejecuta cada hilo es, literalmente, el triple bucle anidado original, sustituyendo `0` por `args->inicio` y `N` por `args->fin` en el bucle externo:
-
-```c
-static void *worker(void *arg) {
-    ArgsHilo *a = (ArgsHilo *)arg;
-    for (int i = a->inicio; i < a->fin; i++)
-        for (int j = 0; j < a->N; j++)
-            for (int k = 0; k < a->N; k++)
-                a->C[i*a->N + j] +=
-                    a->A[i*a->N + k] *
-                    a->B[k*a->N + j];
-    return NULL;
-}
-```
-
-Manteniendo el mismo cuerpo algorítmico se garantiza que las diferencias observadas entre la versión secuencial y la paralela se deban exclusivamente al particionamiento y a los hilos, y no a optimizaciones adicionales.
+La función `worker(args)` que ejecuta cada hilo es el triple bucle anidado original, sustituyendo `0` por `args->inicio` y `N` por `args->fin` en el bucle externo. Manteniendo el mismo cuerpo algorítmico se garantiza que las diferencias observadas entre la versión secuencial y la paralela se deban exclusivamente al particionamiento y a los hilos, y no a optimizaciones adicionales.
 
 ---
 
@@ -103,21 +110,25 @@ mult_matriz/
 │   ├── matriz_monotonic.c # versión secuencial (referencia)
 │   └── matriz_pthreads.c  # versión paralela con pthreads
 ├── include/               # cabeceras públicas de los módulos
-│   ├── memoria.h          # reserva de matrices (compartida)
-│   ├── llenado.h          # inicialización aleatoria (compartida)
-│   ├── tiempo_mult.h      # tiempo + multiplicación secuencial
-│   └── pthread_mult.h     # tiempo + multiplicación paralela
+│   ├── memoria.h
+│   ├── llenado.h
+│   ├── tiempo_mult.h
+│   └── pthread_mult.h
 ├── modules/               # implementaciones (.c) de los módulos
 │   ├── memoria.c
 │   ├── llenado.c
 │   ├── tiempo_mult.c
 │   └── pthread_mult.c
 ├── experiments/
-│   ├── run.sh             # automatiza las 20 mediciones
-│   ├── plot.py            # genera la gráfica de speedup
-│   ├── resultados.csv     # datos crudos (versionado)
-│   └── speedup.png        # gráfica generada (versionada)
-└── bin/                   # binarios compilados (generados, no versionados)
+│   ├── run.sh             # automatiza el experimento completo (resumible)
+│   ├── aggregate.py       # calcula media, mediana, stddev por (N, T)
+│   ├── plot.py            # genera las dos gráficas de speedup
+│   ├── resultados_raw.csv # datos crudos (1 fila por corrida individual)
+│   ├── resultados.csv     # datos agregados (1 fila por configuración)
+│   ├── speedup_vs_N.png   # gráfica 1: speedup vs N, curvas por T
+│   ├── speedup_vs_T.png   # gráfica 2: speedup vs T, curvas por N
+│   └── speedup.png        # copia de la primera, para compatibilidad
+└── bin/                   # binarios compilados (no versionados)
 ```
 
 ### 3.1 Tipos de archivo
@@ -133,8 +144,8 @@ Ambas versiones comparten los módulos `memoria` y `llenado`, lo que evita dupli
 
 - **`memoria`** (`modules/memoria.c`, `include/memoria.h`): calcula `N*N`, reserva memoria para las tres matrices con `malloc` y verifica que las reservas se realizaron correctamente. Devuelve una struct `Matrices` con los tres punteros y el total de elementos.
 - **`llenado`** (`modules/llenado.c`, `include/llenado.h`): inicializa la semilla del generador de números aleatorios (`srand(time(NULL))`) y llena `A` y `B` con valores aleatorios en `[1, valor_maximo]`, además de poner `C` en cero.
-- **`tiempo_mult`** (`modules/tiempo_mult.c`, `include/tiempo_mult.h`): mide y ejecuta la multiplicación secuencial.
-- **`pthread_mult`** (`modules/pthread_mult.c`, `include/pthread_mult.h`): mide y ejecuta la multiplicación paralela con pthreads.
+- **`tiempo_mult`** (`modules/tiempo_mult.c`, `include/tiempo_mult.h`): mide y ejecuta la multiplicación secuencial con `CLOCK_MONOTONIC_RAW`.
+- **`pthread_mult`** (`modules/pthread_mult.c`, `include/pthread_mult.h`): mide y ejecuta la multiplicación paralela con pthreads y `CLOCK_MONOTONIC_RAW`.
 
 ---
 
@@ -153,6 +164,7 @@ Ejemplos puntuales:
 
 ```bash
 make clean
+make all
 make run 500 10           # secuencial
 make run_par 500 10 4     # paralelo con 4 hilos
 ```
@@ -174,158 +186,139 @@ Las mediciones se realizaron sobre un equipo con las siguientes características
 
 ### 5.2 Variables y métricas
 
-- **Variable independiente 1 — tamaño de la matriz `N`**: 500, 1000, 2000 y 4000.
-- **Variable independiente 2 — número de hilos `T`**: 1 (secuencial), 2, 4, 8 y 16.
-- **Variable dependiente — tiempo de ejecución**: medido en segundos con `clock_gettime(CLOCK_MONOTONIC)`.
-- **Métrica derivada — speedup**: $S_T = T_{\text{sec}} / T_{\text{par}}$.
+- **Variable independiente 1 — tamaño de la matriz `N`**: 500, 1000, 2000, 4000 y 8000 (incremento exponencial para cubrir un amplio espectro del comportamiento).
+- **Variable independiente 2 — número de hilos `T`**: 1 (secuencial), 2, 4, 8 y 16 (incremento cuadrático).
+- **Variable dependiente — tiempo de ejecución**: medido en segundos con `clock_gettime(CLOCK_MONOTONIC_RAW)`.
+- **Métrica derivada — speedup**: $S_T = \bar{T}_{\text{sec}} / \bar{T}_{\text{par}}$, calculado sobre las medias aritméticas de las 10 corridas.
 
-Se realizaron **20 mediciones en total**: 4 tamaños × 5 configuraciones (1, 2, 4, 8 y 16 hilos). Cada corrida utilizó matrices `A` y `B` con valores aleatorios en el rango $[1, 10]$ generadas con `srand`/`rand`.
+En total se realizan **250 mediciones**: 5 tamaños × 5 configuraciones × 10 corridas.
 
-### 5.3 Automatización
+### 5.3 Metodología estadística: 10 corridas por configuración
 
-Para asegurar que todas las mediciones siguieran exactamente el mismo procedimiento, se creó el script `experiments/run.sh`, que itera sobre los cuatro tamaños y, para cada uno, ejecuta la versión secuencial y la paralela con 2, 4, 8 y 16 hilos, almacenando los tiempos en `experiments/resultados.csv`.
+Para cada combinación `(N, T)` se ejecutan **10 corridas independientes** y se reporta:
 
-La gráfica de speedup se genera con `experiments/plot.py`, que lee el CSV y produce `experiments/speedup.png` utilizando `matplotlib`.
+- **Media aritmética** ($\bar{T}$) — medida central principal del rendimiento.
+- **Mediana** — útil para detectar asimetrías o valores atípicos.
+- **Desviación estándar** ($\sigma$) — cuantifica la variabilidad entre corridas.
 
----
+Esta repetición es necesaria porque una sola medición puede estar contaminada por ruido del sistema operativo (quantum preemptions, otros procesos, decisiones de caché). Como explicó el profesor en clase, una medición única no es estadísticamente válida; el promedio estadístico de varias corridas es la forma estándar de aislar ese ruido.
 
-## 6. Resultados
+### 5.4 Orden de los `for` en el script y envenenamiento de caché
 
-### 6.1 Tiempos de ejecución medidos (segundos)
-
-| N   | 1 hilo (sec) | 2 hilos       | 4 hilos       | 8 hilos       | 16 hilos      |
-| --- | ------------ | ------------- | ------------- | ------------- | ------------- |
-| 500   | 0.060872 | 0.119230 | 0.055199 | 0.061106 | 0.063904 |
-| 1000  | 0.585744 | 0.936437 | 0.517075 | 0.301106 | 0.296705 |
-| 2000  | 11.17299 | 8.008481 | 4.689642 | 3.407542 | 4.185647 |
-| 4000  | 257.5998 | 94.47988 | 59.99602 | 53.75035 | 52.82112 |
-
-### 6.2 Speedup observado ($S_T = T_{\text{sec}} / T_{\text{par}}$)
-
-| N   | 2 hilos | 4 hilos | 8 hilos | 16 hilos |
-| --- | ------- | ------- | ------- | -------- |
-| 500   | 0.51 | 1.10 | 1.00 | 0.95 |
-| 1000  | 0.63 | 1.13 | 1.95 | 1.97 |
-| 2000  | 1.39 | 2.38 | 3.28 | 2.67 |
-| 4000  | 2.73 | 4.29 | 4.79 | 4.88 |
-
-### 6.3 Gráfica de speedup
-
-La curva de speedup en función de `N` para cada cantidad de hilos, generada a partir del CSV anterior, es la siguiente:
-
-![Speedup vs N](experiments/speedup.png)
-
-El eje X corresponde al tamaño de la matriz `N` (500, 1000, 2000, 4000) y el eje Y al speedup `T_sec / T_par`. Cada curva representa una cantidad fija de hilos.
-
-### 6.4 Resultados detallados por tamaño
-
-Para complementar las tablas, a continuación se resumen los valores extremos y el mejor speedup alcanzado para cada `N`:
-
-| N    | Tiempo secuencial | Mejor tiempo paralelo | Hilos en mejor caso | Speedup máximo |
-| ---: | ----------------: | -------------------: | ------------------: | -------------: |
-| 500    | 0.060872 s | 0.055199 s |  4 | 1.10× |
-| 1000   | 0.585744 s | 0.296705 s | 16 | 1.97× |
-| 2000   | 11.17299 s | 3.407542 s |  8 | 3.28× |
-| 4000   | 257.5998 s | 52.82112 s | 16 | 4.88× |
-
-Se observa que:
-
-- Con `N = 500` y `N = 1000`, el *overhead* de crear y sincronizar hilos reduce o anula el beneficio del paralelismo. El mejor caso apenas supera a la versión secuencial.
-- Con `N = 2000` y `N = 4000`, el speedup crece monótonamente con la cantidad de hilos hasta estabilizarse en torno a 4.8, valor que coincide con la capacidad efectiva de cómputo paralelo de la máquina (12 núcleos lógicos, de los cuales alrededor de 5–6 participan eficientemente en este problema limitado por memoria).
-
-El CSV completo con las 20 mediciones queda almacenado en `experiments/resultados.csv`:
-
-```csv
-N,threads,tiempo
-500,1,0.060872128
-500,2,0.119229636
-500,4,0.055198751
-500,8,0.061105585
-500,16,0.063904262
-1000,1,0.585743579
-1000,2,0.936436967
-1000,4,0.517074596
-1000,8,0.301106325
-1000,16,0.296704704
-2000,1,11.172985833
-2000,2,8.008480854
-2000,4,4.689642145
-2000,8,3.407541602
-2000,16,4.185647044
-4000,1,257.599817138
-4000,2,94.479881127
-4000,4,59.996019865
-4000,8,53.750351709
-4000,16,52.821123640
-```
-
----
-
-## 7. Análisis de resultados
-
-### 7.1 El speedup depende fuertemente del tamaño del problema
-
-El primer hallazgo es que **no existe un valor único de speedup**: el mismo programa con la misma cantidad de hilos obtiene speedups muy distintos según `N`. Para `T = 16` pasamos de un speedup de 0.95 (con `N = 500`) a uno de 4.88 (con `N = 4000`). La explicación es la relación entre **trabajo computacional** y **overhead de paralelización**:
-
-- El *overhead* incluye: llamada a `pthread_create`, planificación de los hilos en el sistema operativo, accesos contenciosos a memoria y `pthread_join`. Este *overhead* es aproximadamente constante o crece muy poco con `N`.
-- El trabajo útil escala como $O(N^3)$. A medida que `N` crece, la fracción del tiempo total debida al *overhead* se vuelve cada vez más pequeña y el paralelismo puede expresarse.
-
-### 7.2 Para problemas pequeños, paralelizar puede ser contraproducente
-
-Con `N = 500`, dos hilos tardan **más** que la versión secuencial (0.119 s vs 0.061 s). El *overhead* de crear y destruir dos hilos resulta mayor que el trabajo total a repartir. Esta observación coincide con la predicción de Amdahl: existe un tamaño mínimo de problema por debajo del cual el paralelismo no aporta beneficio.
-
-### 7.3 El speedup se aleja del ideal lineal y satura
-
-La máquina ofrece 12 núcleos lógicos, por lo que el speedup teórico ideal con `T = 16` sería 16 (o, en el mejor caso, cercano a 12 si todos los hilos se ejecutan realmente en paralelo). El speedup observado en `N = 4000` es **4.88**, muy por debajo. Esto es consecuencia de varios factores acumulativos:
-
-1. **Sobrecarga de creación y sincronización de hilos**, ya mencionada.
-2. **Ancho de banda de memoria compartido**: todos los hilos leen las matrices `A` y `B` completas y escriben en `C`. Cuando `N` crece, estas matrices dejan de caber en la caché L2 del procesador y los hilos compiten por el ancho de banda de la memoria principal, que se vuelve el cuello de botella.
-3. **Fracción secuencial real**: la reserva de memoria, el llenado y la toma de tiempos no se paralelizan. Cualquier porción no paralelizable fija un techo al speedup posible.
-
-### 7.4 Meseta entre 8 y 16 hilos
-
-A partir de `T = 8`, añadir más hilos produce una mejora marginal: con `N = 4000`, el speedup pasa de 4.79 (8 hilos) a 4.88 (16 hilos), apenas un 2 % de mejora. Los 8 hilos ya saturan la capacidad de cómputo y de memoria útil de la máquina; los 8 hilos adicionales compiten por los mismos recursos sin aportar trabajo neto. Este fenómeno es característico del comportamiento predicho por la Ley de Amdahl cuando la fracción paralelizable se acerca a la unidad pero el *overhead* crece con `T`.
-
-### 7.5 Comparación del mejor caso con la Ley de Amdahl
-
-Si en el mejor caso (`N = 4000`, 16 hilos) se asume un speedup observado de 4.88, puede estimarse la fracción secuencial $f_s$ implícita. Para una Ley de Amdahl "estricta":
-
-$$4.88 \approx \frac{1}{f_s + (1-f_s)/16} \implies f_s \approx 0{,}002$$
-
-Es decir, la porción teóricamente paralelizable explicaría un speedup mucho mayor; el valor real es menor por factores no modelados por la ley (memoria, contención, planificación del SO). Esta diferencia entre la cota de Amdahl y la medición real es esperada e ilustra que la ley es un **techo**, no una predicción exacta.
-
----
-
-## 8. Conclusiones
-
-1. La paralelización con pthreads de la multiplicación de matrices es **técnicamente viable** y permite obtener speedups cercanos a 5× con 16 hilos en máquinas con 12 núcleos lógicos.
-2. El beneficio del paralelismo **depende críticamente del tamaño del problema**: para matrices pequeñas (`N = 500`), el *overhead* supera al trabajo y el speedup puede ser inferior a 1.
-3. El speedup real está acotado por **factores no algorítmicos** como el ancho de banda de memoria y la competencia por caché, que no aparecen en el modelo ideal de Amdahl.
-4. Existe un **punto de saturación** a partir del cual añadir más hilos no aporta beneficio adicional; identificarlo es importante para dimensionar correctamente los recursos en HPC.
-5. La modularización previa (entrega anterior) facilitó la incorporación de la versión paralela: los módulos `memoria` y `llenado` se reutilizaron tal cual, y solo fue necesario añadir el módulo `pthread_mult` y un nuevo `main` (`matriz_pthreads.c`).
-
----
-
-## 9. Cómo reproducir el experimento
+Una decisión clave del script `experiments/run.sh` es el **orden de los bucles**:
 
 ```bash
-# desde la raíz del proyecto
-make clean
-make all
-
-# corrida individual para verificar
-make run 500 10
-make run_par 500 10 4
-
-# experimento completo (20 mediciones)
-bash experiments/run.sh
-
-# gráfica de speedup (requiere matplotlib)
-python3 experiments/plot.py
-
-# resultados
-cat experiments/resultados.csv
-xdg-open experiments/speedup.png   # o el visor preferido
+for run_id in {1..10}; do            # outer = repeticiones
+    for n in "${TAMANOS[@]}"; do     # inner = tamaños
+        ...
+    done
+done
 ```
 
-El CSV queda en `experiments/resultados.csv` y la gráfica en `experiments/speedup.png`; ambos forman parte del repositorio y representan los resultados del experimento. Si se vuelve a correr la experimentación con `bash experiments/run.sh`, los valores se regeneran en el mismo formato y pueden reemplazarse con un commit posterior.
+Es decir: para cada corrida (`run_id = 1, 2, ..., 10`), se recorren **todos los tamaños** antes de pasar a la siguiente repetición.
+
+La razón, explicada por el profesor, es que si invirtiéramos el orden y corrieramos las 10 repeticiones de `N=500` consecutivamente, los datos quedarían *calientes* en las cachés L1/L2 del procesador y el sistema operativo "sería perezoso" de volver a RAM a regenerarlos. El resultado sería una medición **irrealmente rápida** por contaminación de caché. Al intercalar tamaños, cada corrida se ve forzada a traer datos nuevos desde RAM, lo que produce mediciones más realistas.
+
+Adicionalmente, el script inserta un `sleep 1` entre mediciones para garantizar que la semilla `srand(time(NULL))` cambie entre corridas, evitando que dos corridas consecutivas generen exactamente las mismas matrices.
+
+### 5.5 Automatización y resumibilidad
+
+El script `experiments/run.sh` implementa las siguientes características:
+
+- **Loop order profesor**: outer = repeticiones, inner = tamaños.
+- **Append inmediato**: cada medición individual se escribe al CSV en el momento en que termina. Si el proceso se interrumpe (Ctrl+C, `kill`, corte de energía), los datos ya escritos no se pierden.
+- **Resumible**: al re-ejecutarse, el script detecta qué configuraciones `(N, T)` ya tienen 10 corridas completas y las salta. Las que tienen corridas parciales (entre 1 y 9) se truncan y rehacen desde cero.
+- **Agregación progresiva**: al final de cada bloque de `T`, se recalculan las estadísticas. Al final del experimento se regenera `resultados.csv`.
+
+### 5.6 Gráficas generadas
+
+El script `experiments/plot.py` genera **dos variantes** de gráfica, ambas con barras de error (±1 σ propagada al speedup):
+
+1. **`speedup_vs_N.png`** — eje X = tamaño de la matriz `N`, una curva por cada cantidad de hilos `T`. Variante A del profesor.
+2. **`speedup_vs_T.png`** — eje X = cantidad de hilos `T`, una curva por cada tamaño `N`. Variante B del profesor.
+
+Ambas son análisis válidos y muestran aspectos complementarios del speedup.
+
+---
+
+## 6. Cómo reproducir el experimento
+
+### 6.1 Compilar
+
+```bash
+make clean
+make all
+```
+
+### 6.2 Arrancar el experimento en background
+
+El experimento completo (250 mediciones) puede tardar **varias horas** dependiendo del hardware. Se recomienda lanzarlo en background con `nohup` para que sobreviva al cierre de la terminal:
+
+```bash
+cd /home/Alejandro/U/HPC/mult_matriz
+nohup bash experiments/run.sh > experiments/run.log 2>&1 &
+```
+
+### 6.3 Monitorear progreso
+
+```bash
+tail -f experiments/run.log                  # últimas líneas en tiempo real
+wc -l experiments/resultados_raw.csv        # cuántas corridas lleva
+awk -F, 'NR>1 {print $1","$2}' experiments/resultados_raw.csv | sort -u | wc -l
+                                              # cuántos (N, T) ya están completos
+```
+
+### 6.4 Detener y reanudar
+
+Para detener:
+
+```bash
+pkill -f "bash experiments/run.sh"
+```
+
+Para reanudar (los datos previos ya quedaron escritos):
+
+```bash
+cd /home/Alejandro/U/HPC/mult_matriz
+nohup bash experiments/run.sh > experiments/run.log 2>&1 &
+```
+
+El script detecta automáticamente las corridas ya realizadas y continúa donde se detuvo.
+
+### 6.5 Cuando termine
+
+Una vez que el script haya completado las 250 mediciones (puede verse en `experiments/run.log` con un mensaje de fin), ejecutar:
+
+```bash
+python3 experiments/aggregate.py            # por si no se actualizó al final
+python3 experiments/plot.py                 # genera las dos PNG
+cat experiments/resultados.csv              # tabla con media, mediana, stddev
+```
+
+---
+
+## 7. Resultados
+
+> **Estado**: esta sección se actualizará con las tablas y el análisis una vez que el experimento completo haya finalizado. Los archivos `experiments/resultados.csv`, `experiments/speedup_vs_N.png` y `experiments/speedup_vs_T.png` se regeneran al correr `experiments/plot.py`.
+>
+> Mientras el experimento no haya terminado, se pueden ver los datos parciales en `experiments/resultados_raw.csv` (1 fila por medición individual) y los agregados parciales en `experiments/resultados.csv`.
+
+---
+
+## 8. Conclusiones metodológicas
+
+Independientemente de los valores numéricos que arroje el experimento, el trabajo realizado establece las siguientes conclusiones metodológicas:
+
+1. **Wall clock es la métrica correcta**. Se descartó `clock()` (mide CPU time), `timespec_get(TIME_UTC)` (wall clock frágil) y se eligió `clock_gettime(CLOCK_MONOTONIC_RAW)` (wall clock monotónico de alta precisión).
+2. **Una sola medición no es válida estadísticamente**. Se realizan 10 corridas por configuración y se reporta media, mediana y desviación estándar.
+3. **El orden de los bucles afecta la validez experimental**. Intercalar tamaños entre repeticiones evita el envenenamiento de caché que produciría mediciones optimistas.
+4. **El script debe ser resumible**. Con 250 mediciones que pueden tardar horas, la capacidad de pausar y reanudar es esencial.
+5. **Ambas variantes de gráfica (X=N y X=T) son válidas** y muestran aspectos complementarios del speedup, como explicó el profesor.
+
+---
+
+## 9. Referencias técnicas
+
+- `pthread_create`, `pthread_join`: POSIX.1-2008, `<pthread.h>`.
+- `clock_gettime(CLOCK_MONOTONIC_RAW)`: POSIX.1-2008, `<time.h>`. `CLOCK_MONOTONIC_RAW` excluye ajustes de NTP, lo que lo hace más estable que `CLOCK_MONOTONIC` para mediciones de corta duración.
+- Ley de Amdahl, G. M. (1967). *Validity of the single processor approach to achieving large scale computing capabilities*. AFIPS Spring Joint Computer Conference.

@@ -1,31 +1,79 @@
 import csv
-import matplotlib.pyplot as plt
+import math
 from collections import defaultdict
+import matplotlib.pyplot as plt
+
+INFILE = 'experiments/resultados.csv'
 
 filas = []
-with open('experiments/resultados.csv') as f:
+with open(INFILE) as f:
     for row in csv.DictReader(f):
-        filas.append({'N': int(row['N']), 'threads': int(row['threads']), 'tiempo': float(row['tiempo'])})
+        filas.append({
+            'N': int(row['N']),
+            'threads': int(row['threads']),
+            'media': float(row['media']),
+            'mediana': float(row['mediana']),
+            'stddev': float(row['stddev']),
+            'n': int(row['n']),
+        })
 
-sec = {r['N']: r['tiempo'] for r in filas if r['threads'] == 1}
+# Indexar por (N, threads)
+by = {(r['N'], r['threads']): r for r in filas}
+
+# Calcular speedup y propagar stddev
+# speedup = T_seq / T_par, sigma_speedup = speedup * sqrt((sigma_seq/T_seq)^2 + (sigma_par/T_par)^2)
+speedup = defaultdict(dict)
 for r in filas:
-    r['speedup'] = sec[r['N']] / r['tiempo']
+    n, t = r['N'], r['threads']
+    if t == 1:
+        continue
+    seq = by.get((n, 1))
+    par = by.get((n, t))
+    if seq is None or par is None:
+        continue
+    s = seq['media'] / par['media']
+    sigma_s = s * math.sqrt((seq['stddev'] / seq['media']) ** 2 +
+                            (par['stddev'] / par['media']) ** 2)
+    speedup[n][t] = (s, sigma_s)
 
-por_hilos = defaultdict(list)
-for r in filas:
-    por_hilos[r['threads']].append((r['N'], r['speedup']))
-
+# ---------------------------------------------------------------
+# Grafica 1: Speedup vs N, una curva por T
+# ---------------------------------------------------------------
 plt.figure(figsize=(10, 6))
 for t in [2, 4, 8, 16]:
-    pares = sorted(por_hilos[t])
+    pares = sorted((n, speedup[n][t]) for n in speedup if t in speedup[n])
     xs = [n for n, _ in pares]
-    ys = [s for _, s in pares]
-    plt.plot(xs, ys, marker='o', label=f'{t} hilos')
-
+    ys = [v[0] for _, v in pares]
+    es = [v[1] for _, v in pares]
+    plt.errorbar(xs, ys, yerr=es, marker='o', capsize=4, label=f'{t} hilos')
 plt.xlabel('Tamano N')
 plt.ylabel('Speedup (T_sec / T_par)')
 plt.title('Speedup vs N para distintas cantidades de hilos')
 plt.legend()
 plt.grid(True)
-plt.savefig('experiments/speedup.png', dpi=150)
-print('Grafica guardada en experiments/speedup.png')
+plt.savefig('experiments/speedup_vs_N.png', dpi=150)
+plt.close()
+print('Grafica guardada en experiments/speedup_vs_N.png')
+
+# ---------------------------------------------------------------
+# Grafica 2: Speedup vs T, una curva por N
+# ---------------------------------------------------------------
+plt.figure(figsize=(10, 6))
+for n in sorted(speedup):
+    pares = sorted(speedup[n].items())
+    xs = [t for t, _ in pares]
+    ys = [v[0] for _, v in pares]
+    es = [v[1] for _, v in pares]
+    plt.errorbar(xs, ys, yerr=es, marker='o', capsize=4, label=f'N = {n}')
+plt.xlabel('Cantidad de hilos')
+plt.ylabel('Speedup (T_sec / T_par)')
+plt.title('Speedup vs cantidad de hilos para distintos tamanos de matriz')
+plt.legend()
+plt.grid(True)
+plt.savefig('experiments/speedup_vs_T.png', dpi=150)
+plt.close()
+print('Grafica guardada en experiments/speedup_vs_T.png')
+
+# Mantener compat: speedup.png apunta a la primera variante
+import shutil
+shutil.copyfile('experiments/speedup_vs_N.png', 'experiments/speedup.png')

@@ -4,7 +4,7 @@
 
 double multiplicar_y_medir(int *A, int *B, int *C, int N) {
     struct timespec inicio;
-    clock_gettime(CLOCK_MONOTONIC, &inicio);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &inicio);
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
@@ -17,7 +17,7 @@ double multiplicar_y_medir(int *A, int *B, int *C, int N) {
     }
 
     struct timespec fin;
-    clock_gettime(CLOCK_MONOTONIC, &fin);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &fin);
 
     return (double)(fin.tv_sec - inicio.tv_sec) +
            (double)(fin.tv_nsec - inicio.tv_nsec) / 1000000000.0;
