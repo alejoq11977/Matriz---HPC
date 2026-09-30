@@ -273,7 +273,11 @@ Es llamativo que **todos** corresponden a la corrida 10 de las configuraciones c
 
 ### 6.5 Gráficas
 
-**Speedup vs N (solo fork):**
+**Speedup vs N (pthreads, tercera entrega):**
+
+![Speedup vs N pthreads](experiments/speedup_vs_N.png)
+
+**Speedup vs N (fork):**
 
 ![Speedup vs N fork](experiments/speedup_vs_N_fork.png)
 
@@ -285,7 +289,7 @@ Es llamativo que **todos** corresponden a la corrida 10 de las configuraciones c
 
 ![Comparativa pthreads vs fork](experiments/speedup_comparativa.png)
 
-Las versiones de pthreads están en la rama anterior (`pthreads`) y se mantienen aquí para referencia.
+Las dos gráficas individuales (pthreads y fork) se complementan con la comparativa, que muestra las 8 curvas (4 pthreads + 4 fork) en una sola imagen para facilitar la comparación directa.
 
 ---
 

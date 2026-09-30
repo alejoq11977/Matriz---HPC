@@ -34,6 +34,7 @@ def speedup_contra_seq(by, seq, n, t):
 
 
 def graficar_speedup_vs_N(by, metodo, seq_dict, path):
+    unidad = 'hilos' if metodo == 'pthreads' else 'procesos'
     plt.figure(figsize=(10, 6))
     for t in [2, 4, 8, 16]:
         pares = []
@@ -47,7 +48,7 @@ def graficar_speedup_vs_N(by, metodo, seq_dict, path):
         xs = [n for n, _ in pares]
         ys = [v[0] for _, v in pares]
         es = [v[1] for _, v in pares]
-        plt.errorbar(xs, ys, yerr=es, marker='o', capsize=4, label=f'{t} {metodo}')
+        plt.errorbar(xs, ys, yerr=es, marker='o', capsize=4, label=f'{t} {unidad}')
     plt.xlabel('Tamano N')
     plt.ylabel('Speedup (mediana T_sec / mediana T_par)')
     plt.title(f'Speedup vs N ({metodo})')
@@ -59,6 +60,7 @@ def graficar_speedup_vs_N(by, metodo, seq_dict, path):
 
 
 def graficar_speedup_vs_T(by, metodo, seq_dict, path):
+    unidad = 'hilos' if metodo == 'pthreads' else 'procesos'
     plt.figure(figsize=(10, 6))
     for n in sorted({k[0] for k in by}):
         pares = []
@@ -73,9 +75,9 @@ def graficar_speedup_vs_T(by, metodo, seq_dict, path):
         ys = [v[0] for _, v in pares]
         es = [v[1] for _, v in pares]
         plt.errorbar(xs, ys, yerr=es, marker='o', capsize=4, label=f'N = {n}')
-    plt.xlabel('Cantidad de hilos / procesos')
+    plt.xlabel(f'Cantidad de {unidad}')
     plt.ylabel('Speedup (mediana T_sec / mediana T_par)')
-    plt.title(f'Speedup vs cantidad de hilos ({metodo})')
+    plt.title(f'Speedup vs cantidad de {unidad} ({metodo})')
     plt.legend()
     plt.grid(True)
     plt.savefig(path, dpi=150)
