@@ -23,8 +23,7 @@ def cargar(path):
     return {(r['N'], r['threads']): r for r in filas}
 
 
-def speedup_desde(by, n, t):
-    seq = by.get((n, 1))
+def speedup_contra_seq(by, seq, n, t):
     par = by.get((n, t))
     if seq is None or par is None:
         return None
@@ -34,12 +33,13 @@ def speedup_desde(by, n, t):
     return (s, sigma_s)
 
 
-def graficar_speedup_vs_N(by, metodo, path):
+def graficar_speedup_vs_N(by, metodo, seq_dict, path):
     plt.figure(figsize=(10, 6))
     for t in [2, 4, 8, 16]:
         pares = []
         for n in sorted({k[0] for k in by}):
-            r = speedup_desde(by, n, t)
+            seq = seq_dict.get((n, 1))
+            r = speedup_contra_seq(by, seq, n, t)
             if r is not None:
                 pares.append((n, r))
         if not pares:
@@ -58,12 +58,13 @@ def graficar_speedup_vs_N(by, metodo, path):
     print(f'Grafica guardada en {path}')
 
 
-def graficar_speedup_vs_T(by, metodo, path):
+def graficar_speedup_vs_T(by, metodo, seq_dict, path):
     plt.figure(figsize=(10, 6))
     for n in sorted({k[0] for k in by}):
         pares = []
+        seq = seq_dict.get((n, 1))
         for t in [2, 4, 8, 16]:
-            r = speedup_desde(by, n, t)
+            r = speedup_contra_seq(by, seq, n, t)
             if r is not None:
                 pares.append((t, r))
         if not pares:
@@ -82,13 +83,14 @@ def graficar_speedup_vs_T(by, metodo, path):
     print(f'Grafica guardada en {path}')
 
 
-def graficar_comparativa(by_pt, by_fk, path):
+def graficar_comparativa(by_pt, by_fk, seq_dict, path):
     plt.figure(figsize=(10, 6))
     for t in [2, 4, 8, 16]:
         xs, ys_pt, ys_fk = [], [], []
         for n in sorted({k[0] for k in by_pt} & {k[0] for k in by_fk}):
-            pt = speedup_desde(by_pt, n, t)
-            fk = speedup_desde(by_fk, n, t)
+            seq = seq_dict.get((n, 1))
+            pt = speedup_contra_seq(by_pt, seq, n, t)
+            fk = speedup_contra_seq(by_fk, seq, n, t)
             if pt is not None and fk is not None:
                 xs.append(n)
                 ys_pt.append(pt[0])
@@ -109,18 +111,18 @@ def graficar_comparativa(by_pt, by_fk, path):
 
 def main():
     by_pt = cargar(PTHREADS_CSV)
+    by_fk = cargar(FORK_CSV)
 
-    graficar_speedup_vs_N(by_pt, 'pthreads', 'experiments/speedup_vs_N.png')
-    graficar_speedup_vs_T(by_pt, 'pthreads', 'experiments/speedup_vs_T.png')
+    graficar_speedup_vs_N(by_pt, 'pthreads', by_pt, 'experiments/speedup_vs_N.png')
+    graficar_speedup_vs_T(by_pt, 'pthreads', by_pt, 'experiments/speedup_vs_T.png')
 
     import os, shutil
     shutil.copyfile('experiments/speedup_vs_N.png', 'experiments/speedup.png')
 
     if os.path.exists(FORK_CSV):
-        by_fk = cargar(FORK_CSV)
-        graficar_speedup_vs_N(by_fk, 'fork', 'experiments/speedup_vs_N_fork.png')
-        graficar_speedup_vs_T(by_fk, 'fork', 'experiments/speedup_vs_T_fork.png')
-        graficar_comparativa(by_pt, by_fk, 'experiments/speedup_comparativa.png')
+        graficar_speedup_vs_N(by_fk, 'fork', by_pt, 'experiments/speedup_vs_N_fork.png')
+        graficar_speedup_vs_T(by_fk, 'fork', by_pt, 'experiments/speedup_vs_T_fork.png')
+        graficar_comparativa(by_pt, by_fk, by_pt, 'experiments/speedup_comparativa.png')
     else:
         print(f'Aviso: {FORK_CSV} no existe aun; graficas de fork omitidas.')
 
