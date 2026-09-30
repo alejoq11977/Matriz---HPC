@@ -2,10 +2,12 @@
 set -e
 
 # ============================================================
-# Experimento de speedup para multiplicacion de matrices con pthreads
+# Experimento de speedup para multiplicacion de matrices
 # ============================================================
+# Bloque 1: pthreads (T = 1, 2, 4, 8, 16)   -> resultados_raw.csv
+# Bloque 2: fork    (T = 2, 4, 8, 16)       -> resultados_fork_raw.csv
+#
 # - 5 tamanos: 500, 1000, 2000, 4000, 8000
-# - 5 configuraciones: 1 (secuencial), 2, 4, 8, 16 hilos
 # - 10 corridas por configuracion
 # - Loop order: outer = repeticiones, inner = tamanos
 #   (segun indicacion del profesor para evitar cache poisoning)
@@ -15,52 +17,76 @@ set -e
 
 VALOR_MAXIMO=10
 TAMANOS=(500 1000 2000 4000 8000)
-HILOS=(1 2 4 8 16)
+HILOS_PTHREADS=(1 2 4 8 16)
+HILOS_FORK=(2 4 8 16)
 RUNS=10
 
-RAW=experiments/resultados_raw.csv
 LOG=experiments/run.log
 
 mkdir -p experiments
-[ -f "$RAW" ] || echo "N,threads,run,tiempo" > "$RAW"
 
 # Verifica que los binarios existan
-if [ ! -x bin/matriz_monotonic ] || [ ! -x bin/matriz_pthreads ]; then
+if [ ! -x bin/matriz_monotonic ] || [ ! -x bin/matriz_pthreads ] || [ ! -x bin/matriz_fork ]; then
     echo "Error: binarios no encontrados. Ejecuta 'make' primero." >&2
     exit 1
 fi
 
 # -------------------------------------------------------
-# Helpers
+# Helpers genericos
 # -------------------------------------------------------
 
-# Cuenta cuantas corridas hay registradas para (N, T)
+# Cuenta cuantas corridas hay registradas para (N, T) en un CSV
 count_runs() {
-    local n=$1 t=$2
-    awk -F, -v n="$n" -v t="$t" '$1==n && $2==t {c++} END {print c+0}' "$RAW" 2>/dev/null
-}
-
-# Borra corridas parciales de (N, T) (para rehacer si quedaron incompletas)
-truncar_parcial() {
-    local n=$1 t=$2
-    local tmp
-    tmp=$(mktemp)
-    awk -F, -v n="$n" -v t="$t" '!(($1==n) && ($2==t))' "$RAW" > "$tmp"
-    mv "$tmp" "$RAW"
+    local raw=$1 n=$2 t=$3
+    awk -F, -v n="$n" -v t="$t" '$1==n && $2==t {c++} END {print c+0}' "$raw" 2>/dev/null
 }
 
 # Corre una medicion individual y la appendea al CSV
-#   $1 = N, $2 = threads, $3 = run_id
+#   $1 = raw, $2 = N, $3 = threads, $4 = run_id, $5 = binario, $6 = label
 measure() {
-    local n=$1 t=$2 run_id=$3
+    local raw=$1 n=$2 t=$3 run_id=$4 bin=$5 label=$6
     local t_value
     if [ "$t" = "1" ]; then
-        t_value=$(./bin/matriz_monotonic "$n" "$VALOR_MAXIMO" | grep -oP 'Tiempo.*: \K[0-9.]+')
+        t_value=$("$bin" "$n" "$VALOR_MAXIMO" | grep -oP 'Tiempo.*: \K[0-9.]+')
     else
-        t_value=$(./bin/matriz_pthreads "$n" "$VALOR_MAXIMO" "$t" | grep -oP 'Tiempo.*: \K[0-9.]+')
+        t_value=$("$bin" "$n" "$VALOR_MAXIMO" "$t" | grep -oP 'Tiempo.*: \K[0-9.]+')
     fi
-    echo "$n,$t,$run_id,$t_value" >> "$RAW"
-    echo "  [$(date +%H:%M:%S)] N=$n hilos=$t run=$run_id tiempo=$t_value" | tee -a "$LOG"
+    echo "$n,$t,$run_id,$t_value" >> "$raw"
+    echo "  [$(date +%H:%M:%S)] $label N=$n T=$t run=$run_id tiempo=$t_value" | tee -a "$LOG"
+}
+
+# Procesa un bloque de experimento (pthreads o fork)
+#   $1 = raw, $2 = label, $3 = binario, $4-.. = array de T
+run_block() {
+    local raw=$1 label=$2 bin=$3
+    shift 3
+    local hilos=("$@")
+
+    [ -f "$raw" ] || echo "N,threads,run,tiempo" > "$raw"
+
+    for t in "${hilos[@]}"; do
+        echo "" | tee -a "$LOG"
+        echo "=== $label: $t hilo(s)/proceso(s) ===" | tee -a "$LOG"
+
+        for run_id in $(seq 1 $RUNS); do
+            for n in "${TAMANOS[@]}"; do
+                if grep -qE "^${n},${t},${run_id},[0-9]" "$raw" 2>/dev/null; then
+                    continue
+                fi
+                if grep -q "^${n},${t},${run_id}," "$raw" 2>/dev/null; then
+                    sed -i "/^${n},${t},${run_id},/d" "$raw"
+                    echo "  Corrida incompleta para N=$n T=$t run=$run_id, reintentando..." | tee -a "$LOG"
+                fi
+
+                measure "$raw" "$n" "$t" "$run_id" "$bin" "$label"
+
+                sleep 1
+            done
+        done
+
+        out="${raw%_raw.csv}.csv"
+        python3 experiments/aggregate.py "$raw" "$out" 2>/dev/null || true
+    done
 }
 
 # -------------------------------------------------------
@@ -68,36 +94,18 @@ measure() {
 # -------------------------------------------------------
 echo "Inicio del experimento: $(date)" | tee -a "$LOG"
 
-for t in "${HILOS[@]}"; do
-    echo "" | tee -a "$LOG"
-    echo "=== Configuracion: $t hilo(s) ===" | tee -a "$LOG"
+# Bloque 1: pthreads
+run_block experiments/resultados_raw.csv "pthreads" ./bin/matriz_pthreads "${HILOS_PTHREADS[@]}"
 
-    for run_id in $(seq 1 $RUNS); do
-        # Outer loop = repeticiones, inner loop = tamanos
-        for n in "${TAMANOS[@]}"; do
-            # Verificar si esta corrida especifica (n, t, run_id) ya existe y tiene tiempo valido
-            if grep -qE "^${n},${t},${run_id},[0-9]" "$RAW" 2>/dev/null; then
-                continue  # ya esta completa, saltar
-            fi
-            # Si existe la corrida pero sin tiempo valido (interrumpida), la borramos
-            if grep -q "^${n},${t},${run_id}," "$RAW" 2>/dev/null; then
-                sed -i "/^${n},${t},${run_id},/d" "$RAW"
-                echo "  Corrida incompleta detectada para N=$n hilos=$t run=$run_id, reintentando..." | tee -a "$LOG"
-            fi
-
-            measure "$n" "$t" "$run_id"
-
-            # Garantizar semilla distinta entre corridas
-            sleep 1
-        done
-    done
-
-    # Agregacion parcial al final de cada T (no espera a terminar todo)
-    python3 experiments/aggregate.py 2>/dev/null || true
-done
+# Bloque 2: fork
+run_block experiments/resultados_fork_raw.csv "fork" ./bin/matriz_fork "${HILOS_FORK[@]}"
 
 echo "" | tee -a "$LOG"
 echo "Fin del experimento: $(date)" | tee -a "$LOG"
 
-# Agregacion final
-python3 experiments/aggregate.py
+# Agregacion final de ambos bloques
+python3 experiments/aggregate.py experiments/resultados_raw.csv experiments/resultados.csv
+python3 experiments/aggregate.py experiments/resultados_fork_raw.csv experiments/resultados_fork.csv
+
+# Graficas
+python3 experiments/plot.py

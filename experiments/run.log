@@ -1,0 +1,245 @@
+Inicio del experimento: mié 30 sep 2026 00:28:46 -05
+
+=== pthreads: 1 hilo(s)/proceso(s) ===
+Agregado: 25 configuraciones -> experiments/resultados.csv
+
+=== pthreads: 2 hilo(s)/proceso(s) ===
+Agregado: 25 configuraciones -> experiments/resultados.csv
+
+=== pthreads: 4 hilo(s)/proceso(s) ===
+Agregado: 25 configuraciones -> experiments/resultados.csv
+
+=== pthreads: 8 hilo(s)/proceso(s) ===
+Agregado: 25 configuraciones -> experiments/resultados.csv
+
+=== pthreads: 16 hilo(s)/proceso(s) ===
+Agregado: 25 configuraciones -> experiments/resultados.csv
+
+=== fork: 2 hilo(s)/proceso(s) ===
+  [00:28:47] fork N=500 T=2 run=1 tiempo=0.056496607
+  [00:28:48] fork N=1000 T=2 run=1 tiempo=0.425654967
+  [00:28:59] fork N=2000 T=2 run=1 tiempo=9.841817938
+  [00:31:33] fork N=4000 T=2 run=1 tiempo=151.567194903
+  [00:53:43] fork N=8000 T=2 run=1 tiempo=1327.321237317
+  [00:53:44] fork N=500 T=2 run=2 tiempo=0.028544480
+  [00:53:46] fork N=1000 T=2 run=2 tiempo=0.235420681
+  [00:53:52] fork N=2000 T=2 run=2 tiempo=4.896227043
+  [00:55:44] fork N=4000 T=2 run=2 tiempo=111.096857247
+  [01:15:48] fork N=8000 T=2 run=2 tiempo=1201.088460891
+  [01:15:49] fork N=500 T=2 run=3 tiempo=0.027683194
+  [01:15:50] fork N=1000 T=2 run=3 tiempo=0.243188946
+  [01:15:56] fork N=2000 T=2 run=3 tiempo=4.631848110
+  [01:17:48] fork N=4000 T=2 run=3 tiempo=110.841250391
+  [01:37:49] fork N=8000 T=2 run=3 tiempo=1197.260734845
+  [01:37:50] fork N=500 T=2 run=4 tiempo=0.032999737
+  [01:37:51] fork N=1000 T=2 run=4 tiempo=0.256966992
+  [01:37:57] fork N=2000 T=2 run=4 tiempo=4.870659731
+  [01:39:49] fork N=4000 T=2 run=4 tiempo=110.583121837
+  [01:59:48] fork N=8000 T=2 run=4 tiempo=1196.545551663
+  [01:59:49] fork N=500 T=2 run=5 tiempo=0.028751146
+  [01:59:51] fork N=1000 T=2 run=5 tiempo=0.229400199
+  [01:59:57] fork N=2000 T=2 run=5 tiempo=4.826652157
+  [02:01:49] fork N=4000 T=2 run=5 tiempo=110.923122936
+  [02:21:52] fork N=8000 T=2 run=5 tiempo=1200.199132678
+  [02:21:53] fork N=500 T=2 run=6 tiempo=0.024637281
+  [02:21:54] fork N=1000 T=2 run=6 tiempo=0.247076988
+  [02:22:00] fork N=2000 T=2 run=6 tiempo=4.676579527
+  [02:23:52] fork N=4000 T=2 run=6 tiempo=110.371491719
+  [02:43:50] fork N=8000 T=2 run=6 tiempo=1195.496088309
+  [02:43:51] fork N=500 T=2 run=7 tiempo=0.028200998
+  [02:43:53] fork N=1000 T=2 run=7 tiempo=0.229400476
+  [02:43:59] fork N=2000 T=2 run=7 tiempo=4.858688195
+  [02:45:50] fork N=4000 T=2 run=7 tiempo=109.804336005
+  [03:05:50] fork N=8000 T=2 run=7 tiempo=1197.198150138
+  [03:05:51] fork N=500 T=2 run=8 tiempo=0.027559769
+  [03:05:52] fork N=1000 T=2 run=8 tiempo=0.235363070
+  [03:05:58] fork N=2000 T=2 run=8 tiempo=4.824630318
+  [03:07:50] fork N=4000 T=2 run=8 tiempo=110.137664378
+  [03:27:50] fork N=8000 T=2 run=8 tiempo=1196.842989388
+  [03:27:51] fork N=500 T=2 run=9 tiempo=0.029106874
+  [03:27:52] fork N=1000 T=2 run=9 tiempo=0.247261408
+  [03:27:58] fork N=2000 T=2 run=9 tiempo=5.198418034
+  [03:29:50] fork N=4000 T=2 run=9 tiempo=110.043593081
+  [03:49:49] fork N=8000 T=2 run=9 tiempo=1196.206704831
+  [03:49:50] fork N=500 T=2 run=10 tiempo=0.034493555
+  [03:49:51] fork N=1000 T=2 run=10 tiempo=0.229979092
+  [03:49:58] fork N=2000 T=2 run=10 tiempo=5.156880287
+  [03:51:49] fork N=4000 T=2 run=10 tiempo=109.903032090
+  [04:11:50] fork N=8000 T=2 run=10 tiempo=1198.593578919
+Agregado: 5 configuraciones -> experiments/resultados_fork.csv
+
+=== fork: 4 hilo(s)/proceso(s) ===
+  [04:11:51] fork N=500 T=4 run=1 tiempo=0.022034788
+  [04:11:53] fork N=1000 T=4 run=1 tiempo=0.180219707
+  [04:11:56] fork N=2000 T=4 run=1 tiempo=2.280662449
+  [04:13:03] fork N=4000 T=4 run=1 tiempo=65.089341106
+  [04:25:21] fork N=8000 T=4 run=1 tiempo=735.601616571
+  [04:25:22] fork N=500 T=4 run=2 tiempo=0.015844474
+  [04:25:23] fork N=1000 T=4 run=2 tiempo=0.147998568
+  [04:25:27] fork N=2000 T=4 run=2 tiempo=2.481915508
+  [04:26:34] fork N=4000 T=4 run=2 tiempo=65.266855817
+  [04:38:57] fork N=8000 T=4 run=2 tiempo=740.497752621
+  [04:38:58] fork N=500 T=4 run=3 tiempo=0.022733179
+  [04:38:59] fork N=1000 T=4 run=3 tiempo=0.140058049
+  [04:39:03] fork N=2000 T=4 run=3 tiempo=2.281356687
+  [04:40:09] fork N=4000 T=4 run=3 tiempo=64.633331255
+  [04:52:37] fork N=8000 T=4 run=3 tiempo=744.958798890
+  [04:52:38] fork N=500 T=4 run=4 tiempo=0.029085240
+  [04:52:39] fork N=1000 T=4 run=4 tiempo=0.135527209
+  [04:52:42] fork N=2000 T=4 run=4 tiempo=2.443566928
+  [04:53:50] fork N=4000 T=4 run=4 tiempo=66.102888115
+  [05:06:20] fork N=8000 T=4 run=4 tiempo=746.962885558
+  [05:06:21] fork N=500 T=4 run=5 tiempo=0.019881369
+  [05:06:22] fork N=1000 T=4 run=5 tiempo=0.130652510
+  [05:06:26] fork N=2000 T=4 run=5 tiempo=2.444926263
+  [05:07:32] fork N=4000 T=4 run=5 tiempo=65.431939800
+  [05:19:49] fork N=8000 T=4 run=5 tiempo=733.820467047
+  [05:19:50] fork N=500 T=4 run=6 tiempo=0.026439254
+  [05:19:51] fork N=1000 T=4 run=6 tiempo=0.146722242
+  [05:19:55] fork N=2000 T=4 run=6 tiempo=2.276553225
+  [05:21:01] fork N=4000 T=4 run=6 tiempo=64.846839358
+  [05:33:29] fork N=8000 T=4 run=6 tiempo=744.649222186
+  [05:33:30] fork N=500 T=4 run=7 tiempo=0.022230938
+  [05:33:31] fork N=1000 T=4 run=7 tiempo=0.172755185
+  [05:33:34] fork N=2000 T=4 run=7 tiempo=2.378141486
+  [05:34:42] fork N=4000 T=4 run=7 tiempo=66.300365941
+  [05:47:08] fork N=8000 T=4 run=7 tiempo=742.684595530
+  [05:47:09] fork N=500 T=4 run=8 tiempo=0.023158418
+  [05:47:10] fork N=1000 T=4 run=8 tiempo=0.176011034
+  [05:47:13] fork N=2000 T=4 run=8 tiempo=2.432903665
+  [05:48:21] fork N=4000 T=4 run=8 tiempo=66.179941130
+  [06:00:46] fork N=8000 T=4 run=8 tiempo=741.871797245
+  [06:00:47] fork N=500 T=4 run=9 tiempo=0.019793837
+  [06:00:48] fork N=1000 T=4 run=9 tiempo=0.127524699
+  [06:00:52] fork N=2000 T=4 run=9 tiempo=2.335272114
+  [06:01:59] fork N=4000 T=4 run=9 tiempo=65.881667337
+  [06:14:27] fork N=8000 T=4 run=9 tiempo=745.015587066
+  [06:14:28] fork N=500 T=4 run=10 tiempo=0.019548479
+  [06:14:29] fork N=1000 T=4 run=10 tiempo=0.123745911
+  [06:14:32] fork N=2000 T=4 run=10 tiempo=2.249273603
+  [06:15:39] fork N=4000 T=4 run=10 tiempo=64.973844427
+  [06:28:04] fork N=8000 T=4 run=10 tiempo=742.788386363
+Agregado: 10 configuraciones -> experiments/resultados_fork.csv
+
+=== fork: 8 hilo(s)/proceso(s) ===
+  [06:28:05] fork N=500 T=8 run=1 tiempo=0.016119021
+  [06:28:07] fork N=1000 T=8 run=1 tiempo=0.126524440
+  [06:28:10] fork N=2000 T=8 run=1 tiempo=2.052193296
+  [06:29:12] fork N=4000 T=8 run=1 tiempo=60.833988776
+  [06:43:34] fork N=8000 T=8 run=1 tiempo=858.730226367
+  [06:43:35] fork N=500 T=8 run=2 tiempo=0.016630520
+  [06:43:36] fork N=1000 T=8 run=2 tiempo=0.129832575
+  [06:43:39] fork N=2000 T=8 run=2 tiempo=1.941057522
+  [06:44:42] fork N=4000 T=8 run=2 tiempo=61.614854511
+  [06:57:51] fork N=8000 T=8 run=2 tiempo=786.237329105
+  [06:57:52] fork N=500 T=8 run=3 tiempo=0.016643131
+  [06:57:53] fork N=1000 T=8 run=3 tiempo=0.133579866
+  [06:57:56] fork N=2000 T=8 run=3 tiempo=2.005244286
+  [06:58:58] fork N=4000 T=8 run=3 tiempo=60.255861708
+  [07:12:31] fork N=8000 T=8 run=3 tiempo=809.835441064
+  [07:12:32] fork N=500 T=8 run=4 tiempo=0.016343977
+  [07:12:33] fork N=1000 T=8 run=4 tiempo=0.135198674
+  [07:12:36] fork N=2000 T=8 run=4 tiempo=1.924424729
+  [07:13:35] fork N=4000 T=8 run=4 tiempo=57.130339038
+  [07:27:49] fork N=8000 T=8 run=4 tiempo=851.704182092
+  [07:27:50] fork N=500 T=8 run=5 tiempo=0.017719224
+  [07:27:52] fork N=1000 T=8 run=5 tiempo=0.130115461
+  [07:27:55] fork N=2000 T=8 run=5 tiempo=2.015508312
+  [07:28:56] fork N=4000 T=8 run=5 tiempo=59.322993372
+  [07:41:46] fork N=8000 T=8 run=5 tiempo=767.320133640
+  [07:41:47] fork N=500 T=8 run=6 tiempo=0.013470199
+  [07:41:48] fork N=1000 T=8 run=6 tiempo=0.116508605
+  [07:41:51] fork N=2000 T=8 run=6 tiempo=1.931338390
+  [07:42:51] fork N=4000 T=8 run=6 tiempo=58.364893972
+  [07:56:20] fork N=8000 T=8 run=6 tiempo=806.258291072
+  [07:56:21] fork N=500 T=8 run=7 tiempo=0.013470044
+  [07:56:22] fork N=1000 T=8 run=7 tiempo=0.131093348
+  [07:56:25] fork N=2000 T=8 run=7 tiempo=1.955832983
+  [07:57:26] fork N=4000 T=8 run=7 tiempo=58.961200219
+  [08:11:21] fork N=8000 T=8 run=7 tiempo=832.610447173
+  [08:11:22] fork N=500 T=8 run=8 tiempo=0.013398180
+  [08:11:23] fork N=1000 T=8 run=8 tiempo=0.128592864
+  [08:11:26] fork N=2000 T=8 run=8 tiempo=2.011108096
+  [08:12:22] fork N=4000 T=8 run=8 tiempo=54.463825341
+  [08:25:18] fork N=8000 T=8 run=8 tiempo=773.138575218
+  [08:25:19] fork N=500 T=8 run=9 tiempo=0.014340551
+  [08:25:21] fork N=1000 T=8 run=9 tiempo=0.116497939
+  [08:25:24] fork N=2000 T=8 run=9 tiempo=1.955729227
+  [08:26:25] fork N=4000 T=8 run=9 tiempo=59.864014798
+  [08:39:32] fork N=8000 T=8 run=9 tiempo=784.086515967
+  [08:39:33] fork N=500 T=8 run=10 tiempo=0.013525987
+  [08:39:34] fork N=1000 T=8 run=10 tiempo=0.134154097
+  [08:39:37] fork N=2000 T=8 run=10 tiempo=2.183673937
+  [08:40:34] fork N=4000 T=8 run=10 tiempo=55.559203185
+  [08:53:23] fork N=8000 T=8 run=10 tiempo=765.494555430
+Agregado: 15 configuraciones -> experiments/resultados_fork.csv
+
+=== fork: 16 hilo(s)/proceso(s) ===
+  [08:53:24] fork N=500 T=16 run=1 tiempo=0.014820313
+  [08:53:25] fork N=1000 T=16 run=1 tiempo=0.119598669
+  [08:53:29] fork N=2000 T=16 run=1 tiempo=3.006775876
+  [08:54:35] fork N=4000 T=16 run=1 tiempo=63.922866422
+  [09:11:07] fork N=8000 T=16 run=1 tiempo=989.202979030
+  [09:11:08] fork N=500 T=16 run=2 tiempo=0.012034599
+  [09:11:09] fork N=1000 T=16 run=2 tiempo=0.118100636
+  [09:11:13] fork N=2000 T=16 run=2 tiempo=2.930988469
+  [09:12:18] fork N=4000 T=16 run=2 tiempo=63.534809545
+  [09:28:53] fork N=8000 T=16 run=2 tiempo=992.653652976
+  [09:28:54] fork N=500 T=16 run=3 tiempo=0.012087743
+  [09:28:56] fork N=1000 T=16 run=3 tiempo=0.122005463
+  [09:29:00] fork N=2000 T=16 run=3 tiempo=2.942579735
+  [09:30:05] fork N=4000 T=16 run=3 tiempo=63.518605181
+  [09:45:52] fork N=8000 T=16 run=3 tiempo=944.400979091
+  [09:45:53] fork N=500 T=16 run=4 tiempo=0.019476686
+  [09:45:54] fork N=1000 T=16 run=4 tiempo=0.113651175
+  [09:45:58] fork N=2000 T=16 run=4 tiempo=3.120416828
+  [09:47:05] fork N=4000 T=16 run=4 tiempo=64.840966029
+  [10:02:51] fork N=8000 T=16 run=4 tiempo=943.632800980
+  [10:02:52] fork N=500 T=16 run=5 tiempo=0.013043114
+  [10:02:53] fork N=1000 T=16 run=5 tiempo=0.115349585
+  [10:02:57] fork N=2000 T=16 run=5 tiempo=3.008008530
+  [10:04:03] fork N=4000 T=16 run=5 tiempo=63.948288415
+  [10:19:44] fork N=8000 T=16 run=5 tiempo=938.097266314
+  [10:19:45] fork N=500 T=16 run=6 tiempo=0.017801063
+  [10:19:46] fork N=1000 T=16 run=6 tiempo=0.117495373
+  [10:19:50] fork N=2000 T=16 run=6 tiempo=2.962078261
+  [10:20:57] fork N=4000 T=16 run=6 tiempo=64.905947142
+  [10:36:33] fork N=8000 T=16 run=6 tiempo=934.047595340
+  [10:36:34] fork N=500 T=16 run=7 tiempo=0.015616854
+  [10:36:36] fork N=1000 T=16 run=7 tiempo=0.126589846
+  [10:36:40] fork N=2000 T=16 run=7 tiempo=3.320733815
+  [10:37:47] fork N=4000 T=16 run=7 tiempo=65.090577905
+  [10:53:23] fork N=8000 T=16 run=7 tiempo=933.749974422
+  [10:53:24] fork N=500 T=16 run=8 tiempo=0.016230703
+  [10:53:25] fork N=1000 T=16 run=8 tiempo=0.113324978
+  [10:53:30] fork N=2000 T=16 run=8 tiempo=3.104684021
+  [10:54:37] fork N=4000 T=16 run=8 tiempo=65.564103204
+  [11:10:22] fork N=8000 T=16 run=8 tiempo=942.106113985
+  [11:10:23] fork N=500 T=16 run=9 tiempo=0.015358019
+  [11:10:24] fork N=1000 T=16 run=9 tiempo=0.116322547
+  [11:10:28] fork N=2000 T=16 run=9 tiempo=2.904474024
+  [11:11:34] fork N=4000 T=16 run=9 tiempo=64.391033539
+  [11:27:07] fork N=8000 T=16 run=9 tiempo=930.645949925
+  [11:27:08] fork N=500 T=16 run=10 tiempo=0.015155649
+  [11:27:09] fork N=1000 T=16 run=10 tiempo=0.113692862
+  [11:27:14] fork N=2000 T=16 run=10 tiempo=3.004120468
+  [11:28:20] fork N=4000 T=16 run=10 tiempo=64.900586215
+  [11:44:00] fork N=8000 T=16 run=10 tiempo=936.754629160
+Agregado: 20 configuraciones -> experiments/resultados_fork.csv
+
+Fin del experimento: mié 30 sep 2026 11:44:01 -05
+Agregado: 25 configuraciones -> experiments/resultados.csv
+Agregado: 20 configuraciones -> experiments/resultados_fork.csv
+
+(process:420086): Gtk-WARNING **: 11:44:01.568: Unknown key gtk-modules in /home/Alejandro/.config/gtk-4.0/settings.ini
+/home/Alejandro/U/HPC/mult_matriz/experiments/plot.py:54: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  plt.legend()
+/home/Alejandro/U/HPC/mult_matriz/experiments/plot.py:78: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  plt.legend()
+/home/Alejandro/U/HPC/mult_matriz/experiments/plot.py:103: UserWarning: No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
+  plt.legend()
+Grafica guardada en experiments/speedup_vs_N.png
+Grafica guardada en experiments/speedup_vs_T.png
+Grafica guardada en experiments/speedup_vs_N_fork.png
+Grafica guardada en experiments/speedup_vs_T_fork.png
+Grafica guardada en experiments/speedup_comparativa.png

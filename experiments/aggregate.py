@@ -1,9 +1,10 @@
 import csv
 import math
+import sys
 from collections import defaultdict
 
-INFILE = 'experiments/resultados_raw.csv'
-OUTFILE = 'experiments/resultados.csv'
+INFILE = sys.argv[1] if len(sys.argv) > 1 else 'experiments/resultados_raw.csv'
+OUTFILE = sys.argv[2] if len(sys.argv) > 2 else 'experiments/resultados.csv'
 
 grupos = defaultdict(list)
 with open(INFILE) as f:
