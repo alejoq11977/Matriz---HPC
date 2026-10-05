@@ -13,8 +13,8 @@ PAR_HDRS = include/memoria.h include/llenado.h include/pthread_mult.h
 PAR_BIN  = $(BIN_DIR)/matriz_pthreads
 
 # --- version paralela (fork + POSIX shm) ---
-FORK_SRCS = src/matriz_fork.c modules/llenado.c modules/matrix_shm.c
-FORK_HDRS = include/llenado.h include/matrix_shm.h
+FORK_SRCS = src/matriz_fork.c modules/llenado.c modules/matrix_shm.c modules/fork_mult.c
+FORK_HDRS = include/llenado.h include/matrix_shm.h include/fork_mult.h
 FORK_BIN  = $(BIN_DIR)/matriz_fork
 
 .PHONY: all run run_par run_fork clean
