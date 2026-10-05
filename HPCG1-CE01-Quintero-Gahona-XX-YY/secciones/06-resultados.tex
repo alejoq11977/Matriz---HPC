@@ -131,7 +131,7 @@ La tabla~\ref{tab:comparativa} compara directamente las dos técnicas. La column
 
 La figura~\ref{fig:speedup-pt} muestra el speedup de la versión pthreads en función del tamaño de la matriz. Se observa que el speedup crece con $N$ y satura cerca de $N = 4000$.
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figuras/speedup_vs_N.png}
     \caption{Speedup de pthreads en función del tamaño de la matriz. Cada curva representa una cantidad fija de hilos.}
@@ -140,7 +140,7 @@ La figura~\ref{fig:speedup-pt} muestra el speedup de la versión pthreads en fun
 
 La figura~\ref{fig:speedup-fork} muestra lo mismo para la versión fork. La forma es similar, pero los valores son diferentes: en $N$ chicos el speedup es más alto.
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figuras/speedup_vs_N_fork.png}
     \caption{Speedup de fork en función del tamaño de la matriz.}
@@ -149,7 +149,7 @@ La figura~\ref{fig:speedup-fork} muestra lo mismo para la versión fork. La form
 
 La figura~\ref{fig:comparativa-plot} es la gráfica principal de este trabajo: muestra las 8 curvas (4 de pthreads y 4 de fork) en una sola imagen para facilitar la comparación directa.
 
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{figuras/speedup_comparativa.png}
     \caption{Comparativa de speedup: pthreads vs fork. Las líneas continuas con círculos son pthreads, las líneas punteadas con cuadrados son fork.}

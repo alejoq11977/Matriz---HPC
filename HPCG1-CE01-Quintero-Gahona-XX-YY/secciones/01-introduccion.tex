@@ -1,7 +1,7 @@
 \section{Introducción}
 
-Este documento presenta el desarrollo del caso de estudio 1 de la materia de Computación de Alto Rendimiento (HPC). El objetivo es aplicar concurrencia y paralelismo a bajo nivel a un programa de multiplicación de matrices que se había implementado previamente en la versión inicial del proyecto.
+Este documento presenta la \textbf{cuarta entrega} del caso de estudio 1 de la materia de Computación de Alto Rendimiento (HPC). El trabajo continúa lo realizado en la \textbf{tercera entrega} (rama \texttt{pthreads}), donde se paralelizó la multiplicación de matrices con POSIX Threads. En esta cuarta entrega se agrega la versión con \textbf{procesos POSIX (\texttt{fork()})} y se comparan ambas técnicas.
 
-A lo largo del trabajo se construyeron dos versiones paralelas del programa: una usando \textbf{POSIX Threads (pthreads)} y otra usando \textbf{procesos POSIX con \texttt{fork()} y memoria compartida}. Ambas se comparan con la versión secuencial de referencia.
+El programa base de multiplicación de matrices se implementó previamente en la versión inicial del proyecto. En la tercera entrega se construyó la versión paralela con \textbf{POSIX Threads (pthreads)}. En esta cuarta entrega se construyó la versión con \textbf{procesos POSIX con \texttt{fork()} y memoria compartida}. Ambas se comparan con la versión secuencial de referencia.
 
 El resto del documento está organizado así: la sección 2 enumera los objetivos; la sección 3 presenta los conceptos teóricos mínimos necesarios; la sección 4 describe la arquitectura del código; la sección 5 explica el diseño experimental; la sección 6 muestra los resultados; la sección 7 los analiza; y la sección 8 cierra con las conclusiones.

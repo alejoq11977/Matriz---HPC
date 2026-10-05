@@ -28,7 +28,7 @@ En total se ejecutan \textbf{250 mediciones con pthreads} (5 tamaños × 5 confi
 
 Para cada combinación de tamaño y cantidad de hilos/procesos se ejecutaron \textbf{10 corridas independientes} y se calculó la mediana, la media y la desviación estándar. El profesor insistió en que una sola medición no es confiable porque una sola corrida puede coincidir con un momento de ruido del sistema (otra tarea, una preempción, etc.). Repetir 10 veces y usar la mediana como estimador central reduce el impacto de esos picos.
 
-Para la versión fork se midió el tiempo desde \textbf{antes del primer \texttt{fork()} hasta después del último \texttt{waitpid()}. Es decir, se incluye el \textit{overhead} de crear y destruir procesos, igual que en la versión pthreads se incluye el \textit{overhead} de crear y juntar hilos. Esto permite comparar ambas técnicas en igualdad de condiciones.
+Para la versión fork se midió el tiempo desde \textbf{antes del primer \texttt{fork()}} hasta \textbf{después del último \texttt{waitpid()}}. Es decir, se incluye el \textit{overhead} de crear y destruir procesos, igual que en la versión pthreads se incluye el \textit{overhead} de crear y juntar hilos. Esto permite comparar ambas técnicas en igualdad de condiciones. \textbf{antes del primer \texttt{fork()} hasta después del último \texttt{waitpid()}. Es decir, se incluye el \textit{overhead} de crear y destruir procesos, igual que en la versión pthreads se incluye el \textit{overhead} de crear y juntar hilos. Esto permite comparar ambas técnicas en igualdad de condiciones.
 
 \subsection{Orden de los bucles}
 
