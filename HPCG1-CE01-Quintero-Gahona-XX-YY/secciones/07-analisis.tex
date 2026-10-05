@@ -1,0 +1,36 @@
+\section{Análisis de resultados}
+
+\subsection{Fork gana en problemas chicos}
+
+En las matrices pequeñas ($N = 500$ y $N = 1000$), la versión con \texttt{fork()} supera claramente a la versión con pthreads. Por ejemplo, con $N = 1000$ y 16 procesos fork logra un speedup de 3.62$\times$, mientras que pthreads con 16 hilos solo llega a 2.07$\times$.
+
+Esto puede sonar contra-intuitivo, porque crear un proceso es más caro que crear un hilo. La explicación está en que para problemas chicos, \textbf{el tiempo total es muy pequeño} y la mayor parte de lo que se mide es \textit{overhead}. El \textit{overhead} de fork (crear el proceso, esperar, limpiar) se paga una sola vez por medición, así que pesa menos proporcionalmente. En cambio, el \textit{overhead} de pthreads, aunque más liviano, se paga 16 veces (uno por cada hilo).
+
+\subsection{Pthreads gana en problemas grandes}
+
+En las matrices grandes ($N = 4000$ y $N = 8000$), la tendencia se invierte. Con $N = 8000$ y 8 hilos, pthreads alcanza un speedup de 6.90$\times$, mientras que fork con 8 procesos solo llega a 3.07$\times$: pthreads es más del doble de rápido.
+
+La razón: cuando el problema es grande, el cómputo domina y el \textit{overhead} pesa menos. Ahí se ve el costo real de las dos estrategias:
+
+\begin{itemize}
+    \item \textbf{pthreads}: comparten memoria de forma \textbf{implícita}. No hay que configurar nada especial para que vean los mismos datos.
+    \item \textbf{fork}: cada proceso tiene su propia imagen de memoria. Para compartir las matrices hay que pasar por \texttt{shm\_open}, \texttt{mmap} y \texttt{shm\_unlink}. Cuando $N$ es grande y los datos son grandes, ese trabajo extra de configuración se nota.
+\end{itemize}
+
+\subsection{El punto de cruce está en $N = 2000$}
+
+Mirando la tabla~\ref{tab:comparativa} y la figura~\ref{fig:comparativa-plot}, se ve que en $N = 2000$ las dos técnicas están prácticamente empatadas: en algunas configuraciones gana fork y en otras gana pthreads. Este es el \textbf{punto de cruce} entre las dos técnicas. Para matrices más chicas que $N = 2000$ conviene fork; para matrices más grandes, conviene pthreads.
+
+\subsection{Los outliers y la robustez de la mediana}
+
+El patrón de los outliers (todos en T=2, run=10) muestra por qué fue importante repetir 10 veces y usar la mediana. Si solo se hubiera medido una vez por configuración, algunos speedup habrían sido pesimistas por culpa de ese ruido.
+
+El contraste es claro: la media es sensible a un valor extremo, mientras que la mediana lo ignora. Por ejemplo, en $N = 2000$ con $T = 2$:
+
+\begin{itemize}
+    \item Media = 5.38 s
+    \item Mediana = 4.86 s
+    \item Diferencia = 11\% (el outlier de 9.84 s infla la media)
+\end{itemize}
+
+Si el speedup se hubiera calculado con la media, habría sido 3.28$\times$; con la mediana, 3.53$\times$. La diferencia no es dramática, pero confirma que la mediana es la elección correcta.

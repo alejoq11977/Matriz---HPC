@@ -1,0 +1,14 @@
+\section{Objetivos}
+
+\subsection*{Objetivo general}
+
+Implementar dos versiones paralelas del programa de multiplicación de matrices, una con hilos y otra con procesos, usando la API POSIX directamente (sin frameworks de más alto nivel), y comparar su desempeño con la versión secuencial.
+
+\subsection*{Objetivos específicos}
+
+\begin{itemize}
+    \item Implementar la versión paralela con \textbf{POSIX Threads}, compartiendo memoria entre los hilos de forma implícita.
+    \item Implementar la versión paralela con \textbf{procesos} usando \texttt{fork()}, con comunicación entre procesos mediante memoria compartida POSIX (\texttt{shm\_open} + \texttt{mmap}).
+    \item Diseñar un experimento que varíe el tamaño de la matriz y la cantidad de hilos/procesos, repitiendo cada configuración 10 veces para tener resultados estadísticamente confiables.
+    \item Calcular el \textbf{speedup} de cada técnica y comparar pthread contra fork para identificar en qué condiciones una le gana a la otra.
+\end{itemize}

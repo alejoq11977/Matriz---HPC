@@ -1,0 +1,53 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,
+    urlcolor=blue
+}
+
+% Configuración de las figuras
+\captionsetup[figure]{font=small,labelformat=simple,labelsep=period}
+\captionsetup[table]{font=small,labelformat=simple,labelsep=period}
+
+% Renombrar "Figura" y "Tabla" a español
+\renewcommand{\figurename}{Figura}
+\renewcommand{\tablename}{Tabla}
+
+\title{}
+\author{}
+\date{}
+
+\begin{document}
+
+\input{portada}
+
+\newpage
+\tableofcontents
+\newpage
+
+\input{secciones/01-introduccion}
+\input{secciones/02-objetivos}
+\input{secciones/03-marco-teorico}
+\input{secciones/04-arquitectura-codigo}
+\input{secciones/05-diseno-experimental}
+\input{secciones/06-resultados}
+\input{secciones/07-analisis}
+\input{secciones/08-conclusiones}
+\input{secciones/09-referencias}
+
+\end{document}

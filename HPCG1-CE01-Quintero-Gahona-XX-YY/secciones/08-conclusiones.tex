@@ -1,0 +1,35 @@
+\section{Conclusiones}
+
+\subsection{Logros del trabajo}
+
+Se cumplió el objetivo general del caso de estudio: se implementaron dos versiones paralelas del programa de multiplicación de matrices, una con \textbf{POSIX Threads} y otra con \textbf{procesos + memoria compartida POSIX}, y se compararon con la versión secuencial usando la métrica estándar de speedup.
+
+El diseño experimental fue riguroso: 10 corridas por configuración, 5 tamaños de matriz, hasta 5 cantidades de hilos/procesos, en total 450 mediciones. El script se diseñó de forma que se puede pausar y reanudar sin perder datos, lo cual fue clave para un experimento de varias horas.
+
+\subsection{Hallazgos principales}
+
+\begin{enumerate}
+    \item \textbf{No hay una técnica universalmente mejor}: la elección entre pthreads y fork depende del tamaño del problema. En este equipo, para matrices chicas ($N < 2000$) fork fue mejor; para matrices grandes ($N \geq 4000$) pthreads fue mejor.
+    \item \textbf{El speedup real está lejos del ideal}. El mejor caso fue 6.90$\times$ con 8 hilos en $N = 8000$, mientras que el ideal sería 8$\times$ con 8 hilos o 12$\times$ con 12 procesos (recordando que la máquina tiene 12 núcleos lógicos). La diferencia se debe a la parte secuencial del programa, la contención por memoria y el \textit{overhead} del sistema.
+    \item \textbf{Repetir el experimento 10 veces y usar la mediana fue clave}: se detectaron outliers puntuales debidos a ruido del sistema, y la mediana los ignoró de forma natural.
+    \item \textbf{El orden de los bucles en el script}: alternar tamaños entre repeticiones evitó que los datos se quedaran ``calientes'' en la caché del procesador, dando mediciones más realistas.
+\end{enumerate}
+
+\subsection{Limitaciones}
+
+\begin{itemize}
+    \item El speedup de fork se calculó contra el $T = 1$ de \textbf{pthreads} (no se midió fork $T = 1$ por separado). En teoría fork $T = 1$ debería dar un tiempo similar al secuencial de pthreads, pero no se verificó experimentalmente.
+    \item La versión fork con $N = 8000$ usa mucha memoria: tres matrices de 256\,MB cada una, más la imagen del proceso. En máquinas con menos RAM podría fallar.
+    \item El experimento se hizo en un solo equipo. En otra máquina con distinto hardware (más o menos núcleos, diferente jerarquía de caché) los resultados podrían cambiar.
+\end{itemize}
+
+\subsection{Trabajo futuro}
+
+Como continuación natural de este trabajo se podrían explorar:
+
+\begin{itemize}
+    \item Implementar la versión con procesos midiendo también \texttt{T=1}, para tener un baseline propio de fork.
+    \item Probar tamaños de matriz aún más grandes ($N = 16000$ o más) para ver si la tendencia de pthreads ganando se mantiene.
+    \item Aplicar optimizaciones al algoritmo (caché blocking, orden de los bucles cambiado) y medir cómo afectan al speedup.
+    \item Probar en una máquina con muchos más núcleos (32 o 64) para ver hasta dónde escala cada técnica.
+\end{itemize}

@@ -1,0 +1,86 @@
+\section{Marco teórico}
+
+En esta sección se introducen los conceptos mínimos que se necesitan para entender el resto del documento. Se evitan las fórmulas largas y los desarrollos matemáticos; el objetivo es tener un vocabulario común.
+
+\subsection{Wall clock y tiempo de CPU}
+
+En cualquier sistema operativo hay dos formas de medir cuánto tarda un programa:
+
+\begin{itemize}
+    \item \textbf{Wall clock}: es el tiempo real que pasa desde que el programa arranca hasta que termina. Es lo que un usuario percibe como ``cuánto tardó''.
+    \item \textbf{Tiempo de CPU}: es el tiempo que la CPU pasó efectivamente ejecutando instrucciones de nuestro programa, sin contar esperas.
+\end{itemize}
+
+Durante la materia, el profesor indicó que la métrica correcta para comparar rendimiento entre programas es el \textbf{wall clock}, porque refleja la experiencia real del usuario. En este trabajo se mide con la función \texttt{clock\_gettime(CLOCK\_MONOTONIC\_RAW, ...)}, que es la opción más estable para benchmarking: no se ve afectada por los ajustes automáticos que el sistema hace al reloj (NTP).
+
+Para todas las mediciones se cronometra \textbf{solo el trabajo de multiplicación}. La reserva de memoria, la generación de las matrices aleatorias y la impresión de resultados quedan fuera del tiempo medido, porque no son el trabajo que estamos analizando.
+
+\subsection{Speedup}
+
+El \textit{speedup} es la métrica estándar para medir cuánto más rápido es un programa paralelo respecto al secuencial. Se calcula como:
+
+\[
+S_T = \frac{T_{\text{secuencial}}}{T_{\text{paralelo},\,T}}
+\]
+
+donde $T$ es la cantidad de hilos o procesos. El mejor caso posible con $T$ unidades es $S_T = T$ (lo que se llama \textit{speedup lineal}); en la práctica siempre es menor, por el \textit{overhead} de crear los hilos/procesos, la sincronización y la contención de recursos.
+
+\subsection{Por qué se repite el experimento 10 veces}
+
+Una sola medición no es estadísticamente confiable: el sistema operativo puede tener otras tareas corriendo, una preempción puede caer justo en nuestra corrida, o un proceso del sistema puede usar la CPU en el momento crítico. Para aislar este \textbf{ruido del sistema}, se repite el experimento 10 veces por configuración y se calcula:
+
+\begin{itemize}
+    \item \textbf{Media} aritmética: el promedio de las 10 mediciones.
+    \item \textbf{Mediana}: el valor central al ordenar las 10 mediciones. Es \textbf{robusta} frente a valores atípicos: si una sola medición es muy rara, no distorsiona el resultado.
+    \item \textbf{Desviación estándar} ($\sigma$): qué tanto se dispersan las mediciones.
+\end{itemize}
+
+En este trabajo se usa la \textbf{mediana} como medida principal del speedup.
+
+\subsection{El orden de los bucles importa}
+
+Un detalle del script que ejecuta el experimento: para cada repetición se recorren \textbf{todos} los tamaños de matriz antes de pasar a la siguiente repetición. Es decir, el orden es \texttt{for cada\_repetición: for cada\_N: medir}, y no al revés.
+
+El profesor explicó que si las 10 repeticiones de un mismo tamaño se hicieran seguidas, los datos quedarían \textbf{calientes} en las memorias rápidas del procesador (caché) y el sistema no se molestaría en traerlos desde la memoria RAM. La medición saldría \textbf{artificialmente rápida}. Al intercalar tamaños entre repeticiones, cada medición se ve forzada a trabajar con datos nuevos en RAM, dando un resultado más realista.
+
+\subsection{Hilos POSIX (pthreads)}
+
+Un \textbf{hilo} (\textit{thread}) es un flujo de ejecución que vive dentro de un proceso. Varios hilos de un mismo proceso comparten la memoria, los archivos abiertos y otros recursos, pero cada hilo tiene su propia pila y registros.
+
+La API estándar POSIX para crear y manipular hilos se llama \textbf{pthreads}. En este trabajo usamos dos funciones:
+
+\begin{itemize}
+    \item \texttt{pthread\_create(\&tid, NULL, funcion, arg)}: crea un nuevo hilo que ejecuta \texttt{funcion(arg)}. Retorna inmediatamente.
+    \item \texttt{pthread\_join(tid, NULL)}: bloquea al hilo que llama hasta que el hilo \texttt{tid} termine.
+\end{itemize}
+
+\subsection{Procesos POSIX y \texttt{fork()}}
+
+Un \textbf{proceso} es una unidad de ejecución con su propio espacio de direcciones. Crear un proceso es más caro que crear un hilo (el sistema tiene que copiar tablas de memoria, asignar un identificador nuevo, etc.), pero a cambio cada proceso está completamente aislado de los demás.
+
+En este trabajo usamos la llamada al sistema \textbf{\texttt{fork()}}, que crea un proceso hijo idéntico al padre. Después del \texttt{fork()}:
+
+\begin{itemize}
+    \item El \textbf{padre} recibe como resultado el PID (identificador) del hijo creado.
+    \item El \textbf{hijo} recibe como resultado \texttt{0}.
+    \item Si \texttt{fork()} falla, retorna un valor negativo.
+\end{itemize}
+
+Para esperar a que el hijo termine, el padre usa \texttt{waitpid(pid, NULL, 0)}.
+
+\subsection{Memoria compartida POSIX}
+
+A diferencia de los hilos, los procesos \textbf{no comparten memoria} por defecto. Si dos procesos necesitan ver los mismos datos, hay que usar un mecanismo explícito. En este trabajo usamos la API de \textbf{memoria compartida POSIX}:
+
+\begin{itemize}
+    \item \texttt{shm\_open(nombre, ...)}: crea o abre una región de memoria identificada por un nombre (similar a un archivo en \texttt{/dev/shm}).
+    \item \texttt{ftruncate(fd, tamaño)}: fija el tamaño de la región.
+    \item \texttt{mmap(NULL, tamaño, PROT\_READ|PROT\_WRITE, MAP\_SHARED, fd, 0)}: mapea la región en la memoria del proceso. Con \texttt{MAP\_SHARED}, las escrituras de un proceso son visibles para todos los demás que mapearon la misma región.
+    \item \texttt{shm\_unlink(nombre)}: elimina la región cuando ya no se necesita.
+\end{itemize}
+
+Cada matriz (\texttt{A}, \texttt{B}, \texttt{C}) tiene su propia región de memoria compartida. El padre las llena con los datos, los hijos las ven y escriben en ellas, y al final todos leen los resultados desde la misma memoria.
+
+\subsection{Quantum y planificación}
+
+Un proceso \textbf{no se ejecuta de corrido hasta terminar}. El sistema operativo le asigna un tiempo fijo llamado \textbf{quantum} (del orden de 10\,ms). Cuando se acaba el quantum, el sistema pone al proceso en una cola de ``listos'' y le da el CPU a otro. El profesor explicó que el quantum es \textbf{por proceso}, no por hilo: si un proceso tiene 100 hilos, el quantum se reparte entre los 100. Por eso conviene crear hilos ``con medida'', no a lo loco.

@@ -1,0 +1,61 @@
+\section{Diseño experimental}
+
+Esta sección describe cómo se diseñó el experimento. El profesor hizo énfasis en que el diseño experimental es la parte más importante del documento, porque sin un buen diseño los números no significan nada.
+
+\subsection{Hardware}
+
+Todas las mediciones se realizaron en el mismo equipo, por los integrantes del grupo. Las características son:
+
+\begin{itemize}
+    \item \textbf{CPU}: Intel Core i5-12450HX (12.\textsuperscript{a} generación).
+    \item \textbf{Núcleos lógicos}: 12 (8 núcleos físicos con \textit{hyperthreading} activo).
+    \item \textbf{Sistema operativo}: Linux.
+    \item \textbf{Compilador}: \texttt{gcc} versión reciente con flags \texttt{-Wall -Wextra -O2}.
+\end{itemize}
+
+\subsection{Variables}
+
+\begin{itemize}
+    \item \textbf{Tamaño de la matriz} (\texttt{N}): 500, 1000, 2000, 4000 y 8000. Se eligió un rango amplio con saltos de factor 2 para cubrir tanto problemas chicos (donde el paralelismo es marginal) como problemas grandes (donde el paralelismo muestra todo su potencial).
+    \item \textbf{Cantidad de hilos o procesos} (\texttt{T}): 1 (secuencial), 2, 4, 8 y 16. Para la versión fork se saltea \texttt{T=1} porque es esencialmente la misma versión secuencial que ya está medida.
+    \item \textbf{Variable medida}: tiempo de la multiplicación en segundos, usando \texttt{clock\_gettime(CLOCK\_MONOTONIC\_RAW)}.
+    \item \textbf{Métrica calculada}: \textit{speedup} = tiempo secuencial / tiempo paralelo.
+\end{itemize}
+
+En total se ejecutan \textbf{250 mediciones con pthreads} (5 tamaños × 5 configuraciones × 10 corridas) y \textbf{200 mediciones con fork} (5 × 4 × 10).
+
+\subsection{Metodología: 10 corridas por configuración}
+
+Para cada combinación de tamaño y cantidad de hilos/procesos se ejecutaron \textbf{10 corridas independientes} y se calculó la mediana, la media y la desviación estándar. El profesor insistió en que una sola medición no es confiable porque una sola corrida puede coincidir con un momento de ruido del sistema (otra tarea, una preempción, etc.). Repetir 10 veces y usar la mediana como estimador central reduce el impacto de esos picos.
+
+Para la versión fork se midió el tiempo desde \textbf{antes del primer \texttt{fork()} hasta después del último \texttt{waitpid()}. Es decir, se incluye el \textit{overhead} de crear y destruir procesos, igual que en la versión pthreads se incluye el \textit{overhead} de crear y juntar hilos. Esto permite comparar ambas técnicas en igualdad de condiciones.
+
+\subsection{Orden de los bucles}
+
+El script que automatiza el experimento recorre las repeticiones por fuera y los tamaños por dentro:
+
+\begin{verbatim}
+for run_id in 1..10:
+    for N in [500, 1000, 2000, 4000, 8000]:
+        medir(N, T)
+        sleep 1
+\end{verbatim}
+
+Es decir, para cada repetición se recorren todos los tamaños antes de pasar a la siguiente repetición. La razón, explicada por el profesor, es que si las 10 repeticiones de un mismo $N$ se hicieran seguidas, los datos quedarían \textit{calientes} en la caché del procesador y la medición saldría artificialmente rápida. Al intercalar tamaños se fuerza al sistema a traer datos nuevos de RAM, dando un resultado más realista.
+
+\subsection{Automatización y resumibilidad}
+
+Para no tener que ejecutar manualmente las 450 mediciones, se escribieron dos scripts:
+
+\begin{itemize}
+    \item \texttt{experiments/run.sh}: un script en bash que itera sobre las configuraciones, ejecuta cada medición y guarda el resultado en un CSV. Detecta si una medición ya está hecha y la saltea, por lo que si el proceso se interrumpe (Ctrl+C, corte de luz, etc.) se puede reanudar sin perder lo avanzado.
+    \item \texttt{experiments/plot.py}: lee los CSV y genera las gráficas de speedup.
+\end{itemize}
+
+El experimento se ejecutó con el siguiente comando:
+
+\begin{verbatim}
+nohup bash experiments/run.sh > experiments/run.log 2>&1 &
+\end{verbatim}
+
+El \texttt{nohup} permite que el script siga corriendo aunque se cierre la terminal, y el \texttt{\&} lo deja en segundo plano. Las mediciones tardan entre algunas horas (N chicos) y varias horas (N=8000), por lo que es necesario dejarlo desatendido.
