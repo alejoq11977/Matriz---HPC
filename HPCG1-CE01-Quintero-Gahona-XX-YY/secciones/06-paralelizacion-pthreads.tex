@@ -1,0 +1,45 @@
+\section{Paralelización con pthreads}
+
+\subsection{Estrategia de partición por filas}
+
+Ambas versiones paralelas usan la misma estrategia: repartir las \textbf{filas de la matriz resultado $C$} entre los $T$ hilos/procesos. Cada uno calcula las filas que le corresponden y solo escribe en esa parte, así que no hay conflicto entre ellos.
+
+El reparto es equitativo: si $N$ es divisible por la cantidad de hilos, cada uno recibe $N/T$ filas. Si no, los primeros reciben una fila extra para balancear la carga. El siguiente ejemplo muestra la partición para $N = 1000$ y $T = 4$:
+
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Hilo / Proceso} & \textbf{Filas asignadas} \\
+\hline
+0 & $[0, 250)$ \\
+1 & $[250, 500)$ \\
+2 & $[500, 750)$ \\
+3 & $[750, 1000)$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Creación de los hilos}
+
+La versión con pthreads usa la API estándar POSIX para crear y manipular hilos. Las funciones que se usan son:
+
+\begin{itemize}
+    \item \texttt{pthread\_create(\&tid, NULL, funcion, arg)}: crea un nuevo hilo que ejecuta \texttt{funcion(arg)}. Retorna inmediatamente.
+    \item \texttt{pthread\_join(tid, NULL)}: bloquea al hilo que llama hasta que el hilo \texttt{tid} termine.
+\end{itemize}
+
+En el programa principal se hace un \texttt{for} que crea los $T$ hilos, cada uno con su rango de filas. Luego se hace otro \texttt{for} que espera con \texttt{pthread\_join} a que cada hilo termine.
+
+\subsection{Por qué no hace falta sincronización}
+
+Como cada hilo escribe exclusivamente en su propio rango de filas de $C$, no hay condiciones de carrera: dos trabajadores nunca escriben sobre la misma posición. Los hilos leen de $A$ y $B$ simultáneamente (lectura sin escritura es segura). La única sincronización necesaria es al final: \texttt{pthread\_join} para que el programa principal espere a que todos los hilos terminen antes de mostrar el resultado.
+
+\subsection{Dónde vive el código}
+
+La lógica de paralelización con pthreads está en el módulo \texttt{modules/pthread\_mult.c}. Este módulo contiene:
+\begin{itemize}
+    \item La función \texttt{worker} que ejecuta cada hilo (el mismo triple bucle, pero acotado al rango de filas asignado).
+    \item La función \texttt{multiplicar\_pthreads} que reparte las filas, toma el tiempo, crea los hilos con \texttt{pthread\_create}, espera con \texttt{pthread\_join}, y devuelve la duración medida.
+\end{itemize}
+
+El programa principal (\texttt{src/matriz\_pthreads.c}) simplemente llama a \texttt{multiplicar\_pthreads} y muestra el resultado. Toda la complejidad de la paralelización está aislada en el módulo.

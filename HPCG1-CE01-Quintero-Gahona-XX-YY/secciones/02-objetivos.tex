@@ -1,14 +1,15 @@
 \section{Objetivos}
 
-\subsection*{Objetivo general}
+\subsection{Objetivo general}
 
-Implementar dos versiones paralelas del programa de multiplicación de matrices, una con hilos y otra con procesos, usando la API POSIX directamente (sin frameworks de más alto nivel), y comparar su desempeño con la versión secuencial.
+Tomar el programa base de multiplicación de matrices e implementar dos versiones paralelas, una con hilos y otra con procesos, usando la API POSIX directamente, sin frameworks de alto nivel, y medir la ganancia de rendimiento (\textit{speedup}) comparando contra la versión secuencial.
 
-\subsection*{Objetivos específicos}
+\subsection{Objetivos específicos}
 
 \begin{itemize}
-    \item Implementar la versión paralela con \textbf{POSIX Threads}, compartiendo memoria entre los hilos de forma implícita.
-    \item Implementar la versión paralela con \textbf{procesos} usando \texttt{fork()}, con comunicación entre procesos mediante memoria compartida POSIX (\texttt{shm\_open} + \texttt{mmap}).
-    \item Diseñar un experimento que varíe el tamaño de la matriz y la cantidad de hilos/procesos, repitiendo cada configuración 10 veces para tener resultados estadísticamente confiables.
-    \item Calcular el \textbf{speedup} de cada técnica y comparar pthread contra fork para identificar en qué condiciones una le gana a la otra.
+    \item Construir un \textbf{programa base secuencial} que sirva como punto de partida y referencia para medir el speedup de las versiones paralelas.
+    \item Definir una \textbf{metodología de medición de tiempo} que sea correcta (wall clock, no tiempo de CPU), repetible (10 corridas por configuración) y robusta a ruido del sistema (uso de la mediana).
+    \item Implementar la versión paralela con \textbf{POSIX Threads}, donde los hilos comparten la memoria del proceso de forma implícita.
+    \item Implementar la versión paralela con \textbf{procesos}, usando \texttt{fork()} y memoria compartida POSIX (\texttt{shm\_open} + \texttt{mmap}) para compartir las matrices entre procesos.
+    \item Comparar el rendimiento de ambas técnicas y determinar en qué condiciones conviene una u otra.
 \end{itemize}

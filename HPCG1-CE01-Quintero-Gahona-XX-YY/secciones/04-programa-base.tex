@@ -1,0 +1,38 @@
+\section{El programa base (versión inicial)}
+
+\subsection{Qué hace el programa}
+
+El programa base toma dos matrices cuadradas $A$ y $B$ de tamaño $N \times N$ y calcula la matriz producto $C = A \times B$ usando el algoritmo clásico de multiplicación de matrices. Cada elemento $C[i][j]$ se calcula como la suma de los productos de los elementos de la fila $i$ de $A$ con la columna $j$ de $B$:
+
+\[
+C[i][j] = \sum_{k=0}^{N-1} A[i][k] \cdot B[k][j]
+\]
+
+Como hay $N^2$ elementos a producir y cada uno requiere $N$ multiplicaciones y $N-1$ sumas, la complejidad del algoritmo es $O(N^3)$. Por ejemplo, una matriz de $N = 1000$ requiere $10^9$ operaciones, lo que tarda del orden de segundos en un procesador moderno.
+
+\subsection{El algoritmo en código}
+
+El bucle que hace la multiplicación es el mismo que después se paraliza en todas las demás (tres hermanas, en este caso se les llama ``hermanas'' a las versiones paralelas). Es un triple bucle anidado:
+
+\begin{verbatim}
+for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++)
+        for (int k = 0; k < N; k++)
+            C[i*N + j] +=
+                A[i*N + k] *
+                B[k*N + j];
+\end{verbatim}
+
+Los índices \texttt{i*N + k} y \texttt{k*N + j} son el truco para convertir el índice bidimensional \texttt{[i][k]} en uno unidimensional \texttt{[i*N+k]}. Esto se hace porque las matrices se almacenan en un solo bloque de memoria contiguo (allocado con \texttt{malloc}), no como arrays bidimensionales de C.
+
+\subsection{Estructura del código base}
+
+El programa base ya estaba organizado en módulos compartidos desde el inicio:
+
+\begin{itemize}
+    \item \texttt{modules/memoria.c}: reserva memoria para las tres matrices usando \texttt{malloc} y verifica que la reserva haya sido exitosa.
+    \item \texttt{modules/llenado.c}: llena las matrices $A$ y $B$ con valores aleatorios usando \texttt{srand} y \texttt{rand}, y pone $C$ en cero.
+    \item \texttt{modules/tiempo\_mult.c}: contiene la función que ejecuta la multiplicación y mide el tiempo con \texttt{clock\_gettime}.
+\end{itemize}
+
+El programa principal (\texttt{src/matriz\_monotonic.c}) simplemente orquesta estos tres pasos: reservar memoria, llenar, multiplicar (con tiempo), imprimir resultados, liberar memoria. Esta estructura modular se reutilizó después en las versiones paralelas, evitando duplicar código.

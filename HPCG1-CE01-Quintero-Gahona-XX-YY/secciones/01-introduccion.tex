@@ -1,7 +1,14 @@
 \section{Introducción}
 
-Este documento presenta la \textbf{cuarta entrega} del caso de estudio 1 de la materia de Computación de Alto Rendimiento (HPC). El trabajo continúa lo realizado en la \textbf{tercera entrega} (rama \texttt{pthreads}), donde se paralelizó la multiplicación de matrices con POSIX Threads. En esta cuarta entrega se agrega la versión con \textbf{procesos POSIX (\texttt{fork()})} y se comparan ambas técnicas.
+Este documento presenta el trabajo realizado sobre el caso de estudio 1 de la materia de Computación de Alto Rendimiento (HPC), que consistió en tomar un programa secuencial de multiplicación de matrices e implementar versiones paralelas usando concurrencia y paralelismo a bajo nivel, sin frameworks de alto nivel.
 
-El programa base de multiplicación de matrices se implementó previamente en la versión inicial del proyecto. En la tercera entrega se construyó la versión paralela con \textbf{POSIX Threads (pthreads)}. En esta cuarta entrega se construyó la versión con \textbf{procesos POSIX con \texttt{fork()} y memoria compartida}. Ambas se comparan con la versión secuencial de referencia.
+El proyecto se desarrolló en varias etapas. Primero se construyó un \textbf{programa base secuencial} con su propia metodología de medición de tiempo (la versión inicial). Luego se implementaron dos versiones paralelas del mismo programa:
 
-El resto del documento está organizado así: la sección 2 enumera los objetivos; la sección 3 presenta los conceptos teóricos mínimos necesarios; la sección 4 describe la arquitectura del código; la sección 5 explica el diseño experimental; la sección 6 muestra los resultados; la sección 7 los analiza; y la sección 8 cierra con las conclusiones.
+\begin{itemize}
+    \item Una versión con \textbf{POSIX Threads (pthreads)}, que reparte el trabajo entre varios hilos dentro de un mismo proceso.
+    \item Una versión con \textbf{procesos POSIX (\texttt{fork()})} que reparte el trabajo entre procesos hijos, usando \textbf{memoria compartida POSIX} para que todos vean las mismas matrices.
+\end{itemize}
+
+Ambas versiones se compararon con la versión secuencial de referencia usando la métrica estándar de \textit{speedup}. El experimento se diseñó cuidadosamente: se variaron dos parámetros (el tamaño de la matriz $N$ y la cantidad de hilos/procesos $T$), se repitió cada configuración 10 veces para tener resultados confiables, y se midió solo el trabajo de multiplicación (excluyendo reserva de memoria, generación de datos aleatorios e impresión de resultados).
+
+El resto del documento está organizado así: la sección 2 enumera los objetivos; la sección 3 presenta los conceptos teóricos mínimos; la sección 4 describe el programa base secuencial; la sección 5 explica la metodología de medición de tiempo; las secciones 6 y 7 describen las versiones paralelas con hilos y procesos respectivamente; la sección 8 explica el diseño experimental; la sección 9 muestra los resultados; la sección 10 los analiza; y la sección 11 cierra con las conclusiones.

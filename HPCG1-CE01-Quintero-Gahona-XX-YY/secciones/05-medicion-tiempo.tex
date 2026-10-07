@@ -1,0 +1,65 @@
+\section{Medición del tiempo}
+
+Esta sección explica cómo y por qué medimos el tiempo de la forma en que lo hicimos. La elección correcta del mecanismo de medición es importante, porque usar uno inadecuado haría que las comparaciones entre versiones no sean válidas.
+
+\subsection{Wall clock vs tiempo de CPU}
+
+En cualquier sistema operativo hay dos formas de medir cuánto tarda un programa:
+
+\begin{itemize}
+    \item \textbf{Wall clock} (tiempo total transcurrido): es el tiempo \textbf{duración} desde que el programa arranca hasta que termina. Es lo que un usuario percibe como ``cuánto tardó''. Incluye las esperas por E/S, las pausas por quantum y cualquier otra cosa que pase en el sistema.
+    \item \textbf{Tiempo de CPU}: es el tiempo que la CPU pasó efectivamente ejecutando nuestro programa. Se subdivide en tiempo de \textbf{usuario} (código de nuestro programa) y tiempo de \textbf{sistema} (atendiendo llamadas al kernel para nuestro programa).
+\end{itemize}
+
+El profesor indicó que \textbf{la métrica correcta para comparar rendimiento entre programas es el wall clock}, porque refleja la experiencia real del usuario. El tiempo de CPU mide algo distinto (cuánto trabajó el procesador para nosotros), pero no cuánto tardó el programa en completarse. En este trabajo usamos wall clock en todos los casos.
+
+\subsection{Qué opciones había en C}
+
+El lenguaje C ofrece varias funciones de tiempo. La siguiente tabla resume las que consideramos:
+
+\begin{center}
+\begin{tabular}{|l|l|c|}
+\hline
+\textbf{Función} & \textbf{Qué mide} & \textbf{Wall clock?} \\
+\hline
+\texttt{clock()} & Tiempo de CPU & \textcolor{red}{No} \\
+\texttt{timespec\_get(TIME\_UTC)} & Wall clock, pero afectado por cambios de hora del sistema & \textcolor{red}{No (frágil)} \\
+\texttt{clock\_gettime(CLOCK\_MONOTONIC)} & Wall clock monotónico & \textcolor{green}{Sí} \\
+\texttt{clock\_gettime(CLOCK\_MONOTONIC\_RAW)} & Wall clock, sin ajustes de NTP & \textcolor{green}{Sí, mejor} \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Por qué \texttt{CLOCK\_MONOTONIC\_RAW}}
+
+De las cuatro, \texttt{clock\_gettime(CLOCK\_MONOTONIC\_RAW)} es la que ofrece las mejores garantías para benchmarking:
+
+\begin{itemize}
+    \item Es \textbf{monotónica}: nunca devuelve un valor menor que el anterior, aunque cambies la hora del sistema manualmente.
+    \item Es \textbf{raw} (cruda): no se ve afectada por los ajustes graduales que NTP hace al reloj del sistema para sincronizarlo con servidores de hora externos. Estos ajustes pueden sumar o restar microsegundos al reloj, lo que introduce ruido en mediciones de corta duración.
+\end{itemize}
+
+En resumen, da el tiempo real que el sistema lleva contando desde un punto de referencia arbitrario, sin verse afectado por nada externo.
+
+\subsection{Qué se cronometra}
+
+Para todas las mediciones se cronometra \textbf{solo el trabajo de multiplicación}. Esto significa que:
+
+\begin{itemize}
+    \item La reserva de memoria (\texttt{malloc}) \textbf{no} se mide: depende del sistema operativo, no del algoritmo.
+    \item La generación de matrices aleatorias (\texttt{srand}, \texttt{rand}) \textbf{no} se mide: es trabajo previo que no queremos comparar.
+    \item La impresión de resultados (\texttt{printf}) \textbf{no} se mide: depende del \texttt{stdout}, no del algoritmo.
+    \item El cierre de la unidad de tiempo (\texttt{clock\_gettime} final) \textbf{no} se mide.
+\end{itemize}
+
+Esta metodología se implementó desde el inicio en la versión secuencial (\texttt{modules/tiempo\_mult.c}) y se mantuvo idéntica en las versiones paralelas, para que las comparaciones entre ellas sean válidas.
+
+\subsection{Por qué se repite 10 veces}
+
+Una sola medición no es estadísticamente confiable: el sistema operativo puede tener otras tareas corriendo, una preempción puede caer justo en nuestra corrida, o un proceso del sistema puede usar la CPU en el momento crítico. Para aislar este \textbf{ruido del sistema}, se repite el experimento 10 veces por configuración y se calcula la mediana, la media y la desviación estándar. La mediana es robusta a valores extremos: si una sola medición es muy rara, no distorsiona el resultado.
+
+\subsection{Orden de los bucles}
+
+Un detalle del script que automatiza el experimento: para cada repetición se recorren \textbf{todos} los tamaños de matriz antes de pasar a la siguiente repetición. Es decir, el orden es \texttt{for cada\_repetición: for cada\_N: medir}, y no al revés.
+
+El profesor explicó que si las 10 repeticiones de un mismo tamaño se hicieran seguidas, los datos quedarían \textit{calientes} en las memorias rápidas del procesador (caché) y el sistema no se molestaría en traerlos desde la memoria RAM. La medición saldría \textbf{artificialmente rápida}. Al intercalar tamaños entre repeticiones, cada medición se ve forzada a trabajar con datos nuevos en RAM, dando un resultado más realista.

@@ -1,0 +1,47 @@
+\section{Paralelización con fork y memoria compartida}
+
+\subsection{Por qué fork necesita memoria compartida}
+
+A diferencia de los hilos, los procesos \textbf{no comparten memoria por defecto}. Cada proceso tiene su propio espacio de direcciones independiente. Si dos procesos necesitan ver los mismos datos (como nuestras matrices $A$, $B$, $C$), hay que usar un mecanismo explícito.
+
+En este trabajo usamos la API de \textbf{memoria compartida POSIX}, que permite crear una región de memoria que dos o más procesos pueden mapear en sus espacios de direcciones y ver los mismos bytes.
+
+\subsection{Creación de la región compartida}
+
+Las funciones que se usan son:
+
+\begin{itemize}
+    \item \texttt{shm\_open(nombre, ...)}: crea o abre una región identificada por un nombre (similar a un archivo en \texttt{/dev/shm}).
+    \item \texttt{ftruncate(fd, tamaño)}: fija el tamaño de la región.
+    \item \texttt{mmap(NULL, tamaño, PROT\_READ|PROT\_WRITE, MAP\_SHARED, fd, 0)}: mapea la región en la memoria del proceso. Con \texttt{MAP\_SHARED}, las escrituras de un proceso son visibles para todos los demás que mapearon la misma región.
+    \item \texttt{shm\_unlink(nombre)}: elimina la región cuando ya no se necesita.
+\end{itemize}
+
+Cada matriz ($A$, $B$, $C$) tiene su propia región de memoria compartida. El padre las crea y las llena con los datos, los hijos las ven a través de sus punteros (heredados del padre gracias a \texttt{fork}), escriben sus filas asignadas, y al final todos leen los resultados desde la misma memoria.
+
+\subsection{Creación de los procesos con fork}
+
+En este trabajo usamos la llamada al sistema \texttt{fork()}, que crea un proceso hijo idéntico al padre. Después del \texttt{fork()}:
+
+\begin{itemize}
+    \item El \textbf{padre} recibe como resultado el PID (identificador) del hijo creado.
+    \item El \textbf{hijo} recibe como resultado \texttt{0}.
+    \item Si \texttt{fork()} falla, retorna un valor negativo.
+\end{itemize}
+
+En el programa se hace un \texttt{for} que llama a \texttt{fork()} $T$ veces. Cada hijo, en su rama del \texttt{if (pid == 0)}, ejecuta su parte de la multiplicación y termina con \texttt{\_exit(0)}. El padre guarda los PIDs y espera con \texttt{waitpid(pid, NULL, 0)} a que cada hijo termine.
+
+\subsection{Dónde vive el código}
+
+La lógica de paralelización con fork está en dos módulos:
+
+\begin{itemize}
+    \item \texttt{modules/matrix\_shm.c}: encapsula la creación, mapeo y eliminación de las regiones de memoria compartida. Es agnóstico a la multiplicación en sí.
+    \item \texttt{modules/fork\_mult.c}: contiene la función \texttt{multiplicar\_fork} que reparte las filas, toma el tiempo, crea los procesos con \texttt{fork}, espera con \texttt{waitpid}, y devuelve la duración medida.
+\end{itemize}
+
+El programa principal (\texttt{src/matriz\_fork.c}) simplemente llama a \texttt{multiplicar\_fork} y muestra el resultado.
+
+\subsection{Diferencia clave con pthreads}
+
+La diferencia operacional con la versión de pthreads es que cada proceso hijo tiene su \textbf{propia imagen de memoria}: el \texttt{fork()} copia toda la imagen del proceso padre, incluidas las pilas, el heap, los descriptores de archivo y los mappings de memoria compartida. Esto hace que crear procesos sea más caro que crear hilos. A cambio, los procesos están completamente aislados unos de otros, lo cual tiene ventajas en escenarios donde se quiere robustez ante fallos de un trabajador.
