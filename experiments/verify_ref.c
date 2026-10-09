@@ -1,4 +1,4 @@
-// Implementacion de referencia: 6 bucles anidados con restrict para que
+// Implementacion de referencia: 3 bucles anidados con restrict para que
 // el compilador no asuma aliasing. Se usa para verificar que las versiones
 // optimizadas (con flags) y la version transpuesta (Lab 2) producen
 // el mismo resultado que una implementacion "ingenuamente correcta".
@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Kernel normal de referencia: 6 bucles, accede a memoria en el orden
-// "natural" del algoritmo i, j, k.
+// Kernel normal de referencia: 3 bucles anidados (i, j, k), accede a
+// memoria en el orden "natural" del algoritmo.
 void mult_ref_normal(const int * restrict A,
                     const int * restrict B,
                     int * restrict C,

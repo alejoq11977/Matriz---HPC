@@ -59,7 +59,7 @@ Todos los binarios del Lab 1 (`mm_*`) usan la implementación del
 versión original. La validación se hace así:
 
 1. Se compila un binario de referencia (`experiments/verify_ref`) que
-   implementa la multiplicación con 6 bucles anidados usando punteros
+   implementa la multiplicación con 3 bucles anidados usando punteros
    `restrict` para garantizar al compilador que no hay aliasing. Esto da
    una implementación de referencia matemáticamente correcta.
 
