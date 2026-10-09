@@ -1,0 +1,27 @@
+================================================================
+TABLA FINAL - LAB 1: Optimizacion por compilacion con GCC
+================================================================
+Cada version fue compilada con -Wall (warnings) y los flags indicados.
+La efectividad compara la matriz C resultante (N=10, semilla=42)
+contra una implementacion de referencia con 6 bucles anidados (verify_ref).
+
+Version              Efectividad           t(500)      t(1000)      t(2000)      t(4000)
+----------------------------------------------------------------
+mm_O0                OK               0.285179828  2.608679426 24.954057377 218.113677817
+mm_O1                OK               0.184471219  1.509663314 13.941277131 138.564235623
+mm_O2                OK               0.044619594  0.421592157  4.375499404 75.831719374
+mm_O3                OK               0.045364130  0.451078944  4.304353770 76.079288905
+mm_full              OK               0.045156532  0.433056126  5.651678736 70.065128896
+mm_sin_interchange   OK               0.046215441  0.431521512  5.614676376 69.757610854
+mm_sin_nest          OK               0.046518673  0.431130370  6.635733890 69.991277077
+----------------------------------------------------------------
+
+Flags de cada version:
+  mm_O0: -O0
+  mm_O1: -O1
+  mm_O2: -O2
+  mm_O3: -O3
+  mm_full: -O3 -march=native -floop-interchange -funroll-loops -floop-nest-optimize
+  mm_sin_interchange: -O3 -march=native -funroll-loops -floop-nest-optimize
+  mm_sin_nest: -O3 -march=native -floop-interchange -funroll-loops
+================================================================

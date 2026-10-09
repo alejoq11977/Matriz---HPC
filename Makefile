@@ -1,50 +1,36 @@
 CC      = gcc
-CFLAGS  = -Wall -Wextra -O2 -Iinclude
+CFLAGS  = -Wall -Wextra -Iinclude
 BIN_DIR = bin
 
-# --- version secuencial (CLOCK_MONOTONIC_RAW) ---
-SEQ_SRCS = src/matriz_monotonic.c modules/memoria.c modules/llenado.c modules/tiempo_mult.c
-SEQ_HDRS = include/memoria.h include/llenado.h include/tiempo_mult.h
+# --- Base secuencial (Lab 1 y Lab 2) ---
+SEQ_SRCS = src/matriz_monotonic.c modules/llenado.c modules/memoria.c modules/tiempo_mult.c
+SEQ_HDRS = include/llenado.h include/memoria.h include/tiempo_mult.h
 SEQ_BIN  = $(BIN_DIR)/matriz_monotonic
 
-# --- version paralela (pthreads) ---
-PAR_SRCS = src/matriz_pthreads.c modules/memoria.c modules/llenado.c modules/pthread_mult.c
-PAR_HDRS = include/memoria.h include/llenado.h include/pthread_mult.h
-PAR_BIN  = $(BIN_DIR)/matriz_pthreads
+# --- Version transpuesta (Lab 2) ---
+TRANS_SRCS = src/matriz_monotonic_t.c modules/llenado_trans.c modules/memoria.c modules/tiempo_mult_trans.c
+TRANS_HDRS = include/llenado_trans.h include/memoria.h include/tiempo_mult_trans.h
+TRANS_BIN  = $(BIN_DIR)/matriz_monotonic_t
 
-# --- version paralela (fork + POSIX shm) ---
-FORK_SRCS = src/matriz_fork.c modules/llenado.c modules/matrix_shm.c modules/fork_mult.c
-FORK_HDRS = include/llenado.h include/matrix_shm.h include/fork_mult.h
-FORK_BIN  = $(BIN_DIR)/matriz_fork
-
-.PHONY: all run run_par run_fork clean
+.PHONY: all clean lab1 lab2
 
 .DEFAULT:
 	@:
 
-all: $(SEQ_BIN) $(PAR_BIN) $(FORK_BIN)
+all: $(SEQ_BIN) $(TRANS_BIN)
 
-run: $(SEQ_BIN)
-	./$(SEQ_BIN) $(filter-out $@,$(MAKECMDGOALS))
-
-run_par: $(PAR_BIN)
-	./$(PAR_BIN) $(filter-out $@,$(MAKECMDGOALS))
-
-run_fork: $(FORK_BIN)
-	./$(FORK_BIN) $(filter-out $@,$(MAKECMDGOALS))
+lab1: $(SEQ_BIN)
+lab2: $(SEQ_BIN) $(TRANS_BIN)
 
 $(SEQ_BIN): $(SEQ_SRCS) $(SEQ_HDRS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(SEQ_SRCS) -o $@
+	$(CC) $(CFLAGS) -O2 $(SEQ_SRCS) -o $@
 
-$(PAR_BIN): $(PAR_SRCS) $(PAR_HDRS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(PAR_SRCS) -o $@ -lpthread
-
-$(FORK_BIN): $(FORK_SRCS) $(FORK_HDRS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(FORK_SRCS) -o $@ -lrt
+$(TRANS_BIN): $(TRANS_SRCS) $(TRANS_HDRS) | $(BIN_DIR)
+	$(CC) $(CFLAGS) -O2 $(TRANS_SRCS) -o $@
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 clean:
-	rm -f $(SEQ_BIN) $(PAR_BIN) $(FORK_BIN)
+	rm -f $(SEQ_BIN) $(TRANS_BIN)
 	rmdir $(BIN_DIR) 2>/dev/null || true

@@ -1,0 +1,24 @@
+#include <time.h>
+
+#include "tiempo_mult_trans.h"
+
+double multiplicar_y_medir_trans(int *A, int *B, int *C, int N) {
+    struct timespec inicio;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &inicio);
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            for (int k = 0; k < N; k++) {
+                C[(size_t)i * N + j] +=
+                    A[(size_t)i * N + k] *
+                    B[(size_t)j * N + k];
+            }
+        }
+    }
+
+    struct timespec fin;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &fin);
+
+    return (double)(fin.tv_sec - inicio.tv_sec) +
+           (double)(fin.tv_nsec - inicio.tv_nsec) / 1000000000.0;
+}

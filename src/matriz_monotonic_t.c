@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "llenado.h"
+#include "llenado_trans.h"
 #include "memoria.h"
-#include "tiempo_mult.h"
+#include "tiempo_mult_trans.h"
 
 int main(int argc, char *argv[]) {
 
@@ -28,12 +28,12 @@ int main(int argc, char *argv[]) {
 
     if (argc == 4) {
         unsigned int semilla = (unsigned int)atol(argv[3]);
-        llenar_matrices_con_semilla(m.A, m.B, m.C, m.total_elementos, valor_maximo, semilla);
+        llenar_matrices_transpuesto_con_semilla(m.A, m.B, m.C, m.total_elementos, valor_maximo, semilla);
     } else {
-        llenar_matrices(m.A, m.B, m.C, m.total_elementos, valor_maximo);
+        llenar_matrices_transpuesto(m.A, m.B, m.C, m.total_elementos, valor_maximo);
     }
 
-    double tiempo = multiplicar_y_medir(m.A, m.B, m.C, N);
+    double tiempo = multiplicar_y_medir_trans(m.A, m.B, m.C, N);
 
     printf("Multiplicacion completada.\n");
     printf("Tamano de las matrices: %d x %d\n", N, N);
