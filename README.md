@@ -190,3 +190,44 @@ a O3.
 El kernel transpuesto es cada vez más rápido a medida que crece N.
 A N=4000 es 3.55× más rápido, confirmando que acceder a B por filas
 (contiguo) aprovecha mucho mejor la cache line.
+
+## Comparación: compilación full vs memoria vs original
+
+Aisla el efecto de cada tipo de optimización usando la **misma compilación
+base (`-O2`)** para Original y Memoria, y todas las flags específicas
+para Full.
+
+| Nombre | Binario | Compilación | Kernel |
+|---|---|---|---|
+| Original | `bin/matriz_monotonic` | `-O2` | normal (B por columna) |
+| Full | `bin/mm_full` | `-O3 -march=native -floop-interchange -funroll-loops -floop-nest-optimize` | normal |
+| Memoria | `bin/matriz_monotonic_t` | `-O2` (mismo que Original) | transpuesto (B por fila) |
+
+Los datos provienen de los Labs 1 y 2 ya ejecutados (el "Original"
+corresponde a la versión `-O2` de Lab 2, que es la misma compilación
+del Makefile).
+
+| N | Original (s) | Full (s) | Memoria (s) | speedup Full | speedup Memoria |
+|---:|---:|---:|---:|---:|---:|
+| 500 | 0.048 | 0.045 | 0.037 | 1.07× | 1.30× |
+| 1000 | 0.434 | 0.433 | 0.288 | 1.00× | 1.51× |
+| 2000 | 4.805 | 5.65 | 2.669 | 0.85× | 1.80× |
+| 4000 | 75.45 | 70.1 | 21.28 | 1.08× | 3.55× |
+
+**Conclusiones principales:**
+
+- A N=500/1000, Full no mejora sobre Original (o incluso es un poco peor,
+  dentro del ruido de medición).
+- A N=2000/4000, **Memoria gana claramente** sobre Full (3.55× vs 1.08× a
+  N=4000).
+- A N=4000, Memoria (21.28s) es **3.3× más rápido** que Full (70.1s).
+- **Conclusión principal**: en este algoritmo y este hardware, la
+  optimización de **patrón de acceso a memoria** (transponer B) es más
+  impactante que las transformaciones de loop del compilador. El "full"
+  no logra lo que logra la transposición.
+
+### Gráfica de comparación
+
+Escala log en Y (mismo criterio que las otras gráficas, explicado arriba).
+
+![Comparación](experiments/resultados/comparacion_grafica.png)

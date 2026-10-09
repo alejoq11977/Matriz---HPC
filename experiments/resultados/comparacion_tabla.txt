@@ -1,0 +1,33 @@
+================================================================
+TABLA COMPARATIVA: Sin opt. extra vs Full vs Memoria
+================================================================
+Compilaciones comparadas:
+  Original:    gcc -O2 (la compilación base del Makefile, sin flags extra)
+  Full:        gcc -O3 -march=native -floop-interchange -funroll-loops -floop-nest-optimize
+  Memoria:     gcc -O2 (mismo que Original) + kernel transpuesto (B por fila)
+
+Kernels:
+  Original y Full: kernel normal (C += A[i][k] * B[k][j], B por columna)
+  Memoria:         kernel transpuesto (C += A[i][k] * B[j][k], B por fila)
+
+Los datos provienen de lab2_tabla.txt (Original y Memoria) y
+lab1_tabla.txt (Full). El "Original" aqui es la versión -O2 de Lab 2,
+que es la misma compilación que el binario base del Makefile.
+
+----------------------------------------------------------------------
+N       Original(s)  Full(s)  Memoria(s)  speedup Full   speedup Memoria
+----------------------------------------------------------------------
+500     0.048        0.045    0.037       1.07x          1.30x
+1000    0.434        0.433    0.288       1.00x          1.51x
+2000    4.805        5.65     2.669       0.85x          1.80x
+4000    75.45        70.1     21.28       1.08x          3.55x
+----------------------------------------------------------------------
+
+Conclusiones:
+- A N=500/1000, Full no mejora sobre Original (o incluso empeora en N=2000).
+- A N=2000/4000, Memoria gana claramente sobre Full (3.55x vs 1.08x a N=4000).
+- A N=4000, Memoria (21.28s) es 3.3x mas rapido que Full (70.1s).
+- Conclusion principal: en este algoritmo y este hardware, la
+  optimizacion de patron de acceso a memoria (transponer B) es mas
+  impactante que las transformaciones de loop del compilador.
+================================================================
