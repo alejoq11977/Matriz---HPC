@@ -19,7 +19,7 @@ y se compara el tiempo de ejecución de cada uno. No se toca el código.
 | `-march=native` | Habilita instrucciones específicas del CPU donde se compila (AVX, AVX2, AVX-512 si existen). Sin esto, el binario no usa SIMD aunque la CPU lo soporte. |
 | `-floop-interchange` | Intercambia el orden de bucles anidados para mejorar el patrón de acceso a memoria. Para multiplicación de matrices, transforma `i,j,k` (acceso a B por columna) en `i,k,j` (acceso a B por fila, contiguo). Esta es la optimización más importante para el caso de la multiplicación. |
 | `-funroll-loops` | Duplica el cuerpo del bucle para reducir el overhead de la instrucción de control y dar más oportunidades al compilador de vectorizar. |
-| `-floop-nest-optimize` | Activa el optimizador polyhedral de nidos de bucles. Puede aplicar técnicas avanzadas como tiling (blocking), fusión y skewing. No siempre ayuda y a veces empeora. |
+| `-floop-nest-optimize` | Activa el optimizador polyhedral de nidos de bucles. Puede aplicar técnicas avanzadas como tiling (blocking), fusión y skewing. |
 
 ### Combinaciones probadas
 
@@ -30,8 +30,8 @@ y se compara el tiempo de ejecución de cada uno. No se toca el código.
 | `O2` | `-O2` | Nivel estándar recomendado por GCC |
 | `O3` | `-O3` | Nivel agresivo "seguro" |
 | `full` | `-O3 -march=native -floop-interchange -funroll-loops -floop-nest-optimize` | Todas las flags específicas combinadas |
-| `sin_interchange` | todo lo de full, sin `-floop-interchange` | Ver el impacto de quitar interchange (que el profe dijo que "puede no funcionar") |
-| `sin_nest` | todo lo de full, sin `-floop-nest-optimize` | Ver el impacto de quitar nest-optimize (que el profe dijo que "puede no funcionar") |
+| `sin_interchange` | todo lo de full, sin `-floop-interchange` | Ver el impacto de quitar interchange |
+| `sin_nest` | todo lo de full, sin `-floop-nest-optimize` | Ver el impacto de quitar nest-optimize |
 
 ## Lab 2: Optimización de memoria (cache line)
 
@@ -128,33 +128,49 @@ Genera `experiments/resultados/lab2_tabla.txt` y
 python3 experiments/plot_labs.py
 ```
 
+## Tabla comparativa de resultados
+
+### Lab 1 (tiempos en segundos, escala log)
+
+| Versión | t(500) | t(1000) | t(2000) | t(4000) | Speedup vs O0 (N=4000) |
+|---|---:|---:|---:|---:|---:|
+| O0 | 0.285 | 2.609 | 24.95 | 218.1 | 1.0× |
+| O1 | 0.184 | 1.510 | 13.94 | 138.6 | 1.6× |
+| O2 | 0.045 | 0.422 | 4.38 | 75.8 | 2.9× |
+| O3 | 0.045 | 0.451 | 4.30 | 76.1 | 2.9× |
+| full | 0.045 | 0.433 | 5.65 | 70.1 | 3.1× |
+| sin_interchange | 0.046 | 0.432 | 5.61 | 69.8 | 3.1× |
+| sin_nest | 0.047 | 0.431 | 6.64 | 70.0 | 3.1× |
+
+### Lab 2 (kernel transpuesto vs original)
+
+| N | normal (s) | transpuesto (s) | speedup trans/normal |
+|---:|---:|---:|---:|
+| 500 | 0.048 | 0.037 | 1.30× |
+| 1000 | 0.434 | 0.288 | 1.51× |
+| 2000 | 4.805 | 2.669 | 1.80× |
+| 4000 | 75.45 | 21.28 | 3.55× |
+
+## Gráficas
+
+### Lab 1: Optimización por compilación con GCC
+
+![Lab 1](experiments/resultados/lab1_tiempos.png)
+
+### Lab 2: Optimización de memoria (cache line)
+
+![Lab 2](experiments/resultados/lab2_tiempos.png)
+
 ## Resultados
 
-### Lab 1 (N=500, 1000, 2000, 4000)
-
-| Versión | t(500) | t(1000) | t(2000) | t(4000) |
-|---|---:|---:|---:|---:|
-| O0 | 0.285s | 2.609s | 24.95s | 218.1s |
-| O1 | 0.184s | 1.510s | 13.94s | 138.6s |
-| O2 | 0.045s | 0.422s | 4.38s | 75.8s |
-| O3 | 0.045s | 0.451s | 4.30s | 76.1s |
-| full | 0.045s | 0.433s | 5.65s | 70.1s |
-| sin_interchange | 0.046s | 0.432s | 5.61s | 69.8s |
-| sin_nest | 0.047s | 0.431s | 6.64s | 70.0s |
+### Lab 1
 
 El salto grande es de O1 a O2 (~3× más rápido). Las flags específicas
 del `full` (loop-interchange, loop-nest-optimize) no mejoran mucho
 sobre O2/O3 en este código. Las tres variantes custom son casi iguales
 a O3.
 
-### Lab 2 (kernel transpuesto vs original)
-
-| N | normal (s) | transpuesto (s) | speedup |
-|---:|---:|---:|---:|
-| 500 | 0.048 | 0.037 | 1.30× |
-| 1000 | 0.434 | 0.288 | 1.51× |
-| 2000 | 4.805 | 2.669 | 1.80× |
-| 4000 | 75.45 | 21.28 | 3.55× |
+### Lab 2
 
 El kernel transpuesto es cada vez más rápido a medida que crece N.
 A N=4000 es 3.55× más rápido, confirmando que acceder a B por filas
