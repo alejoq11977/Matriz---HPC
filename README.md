@@ -153,6 +153,21 @@ python3 experiments/plot_labs.py
 
 ## Gráficas
 
+Las dos gráficas usan **escala logarítmica en el eje Y** (el eje vertical).
+Esto es necesario porque los tiempos de las versiones sin optimizar (O0)
+son hasta 250× mayores que los de las optimizadas, así que en escala
+lineal las barras pequeñas serían invisibles. La escala log comprime
+ese rango para que se vean todas las barras.
+
+**Cómo leer una escala logarítmica:** cada marca del eje Y representa
+un factor de 10× respecto a la anterior (por ejemplo, 0.01, 0.1, 1, 10,
+100). Si una barra llega a 1 y otra a 10, la segunda es 10× más lenta, no
+"un poquito más alta". Para comparar dos barras, mirá la **diferencia en
+unidades** del eje log: una barra a 0.1 y otra a 1.0 difieren en 1 unidad
+log, o sea 10×. Las barras a 1.0 y 10.0 también difieren en 10×. La
+diferencia visual (altura aparente) **no es proporcional** al tiempo real,
+sino a su logaritmo.
+
 ### Lab 1: Optimización por compilación con GCC
 
 ![Lab 1](experiments/resultados/lab1_tiempos.png)
