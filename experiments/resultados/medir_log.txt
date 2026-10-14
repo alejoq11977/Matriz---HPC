@@ -1,0 +1,5 @@
+nohup: no se tendrá en cuenta la entrada
+[midiendo mm_full -> experiments/resultados/med_mm_full_raw.csv]
+  OK: 41 lineas en experiments/resultados/med_mm_full_raw.csv
+[midiendo matriz_monotonic_t -> experiments/resultados/med_matriz_monotonic_t_raw.csv]
+  OK: 41 lineas en experiments/resultados/med_matriz_monotonic_t_raw.csv
