@@ -212,10 +212,12 @@ for row in filas[1:]:  # saltar header
     parts = row.split(',')
     n = int(parts[0])
     ns_plot.append(n)
-    su_pth.append(float(parts[5]))
-    su_fork.append(float(parts[6]))
-    su_full.append(float(parts[7]))
-    su_mem.append(float(parts[8]))
+    # El header es: N,T_seq,T_pth,T_fork,T_full,T_mem,speedup_pth,speedup_fork,speedup_full,speedup_mem
+    # indices:       0  1     2      3      4      5     6            7            8            9
+    su_pth.append(float(parts[6]))
+    su_fork.append(float(parts[7]))
+    su_full.append(float(parts[8]))
+    su_mem.append(float(parts[9]))
 
 ax.plot(ns_plot, su_pth, 'o-', label='Pthreads (mejor T)', linewidth=2)
 ax.plot(ns_plot, su_fork, 's-', label='Fork (mejor T)', linewidth=2)
