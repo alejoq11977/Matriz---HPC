@@ -80,16 +80,27 @@ for (int i = 0; i < N; i++) {
 
 ### Tabla comparativa de speedups (vs mismo secuencial)
 
-Para las tres estrategias paralelas (pthreads, fork, OpenMP), la columna `T_*_best` muestra la mediana del **mejor T** por N — el que dio el menor tiempo. El T específico se indica entre paréntesis.
-
-> **Nota**: la tabla siguiente se regenera automáticamente al correr `experiments/medir_openmp.sh` (que ahora barre T=1,2,4,8,16) + `experiments/plot_caso2_openmp.py`. Los valores que se muestran a continuación son los que dejó la corrida de prueba inicial; al correr el barrido completo con las directivas OpenMP reales, los speedups van a cambiar.
+Para las tres estrategias paralelas (pthreads, fork, OpenMP), la columna `T_*_best` muestra la mediana del **mejor T** por N — el que dio el menor tiempo. El T específico se indica entre paréntesis. `T_seq` es la mediana del secuencial con T=1 de pthreads y es la base del speedup de las cinco estrategias.
 
 | N | T_seq (s) | T_pth_best (s) | T_fork_best (s) | T_full (s) | T_mem (s) | T_openmp (s) | speedup_pth | speedup_fork | speedup_full | speedup_mem | speedup_openmp |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 500 | 0.0440 | 0.0315 (T=16) | 0.0152 (T=8) | 0.0459 | 0.0377 | 0.0500 | 1.40 | 2.89 | 0.96 | 1.17 | 0.88 |
-| 1000 | 0.4230 | 0.2043 (T=16) | 0.1169 (T=16) | 0.4301 | 0.3019 | 0.4500 | 2.07 | 3.62 | 0.98 | 1.40 | 0.94 |
-| 2000 | 4.3626 | 1.6430 (T=16) | 1.9805 (T=8) | 5.8909 | 2.6586 | 4.8500 | 2.66 | 2.20 | 0.74 | 1.64 | 0.90 |
-| 4000 | 75.6511 | 24.2927 (T=16) | 59.1421 (T=8) | 70.0332 | 21.3223 | 54.5000 | 3.11 | 1.28 | 1.08 | 3.55 | 1.39 |
+| 500 | 0.0440 | 0.0315 (T=16) | 0.0152 (T=8) | 0.0459 | 0.0377 | 0.0623 (T=16) | 1.40 | 2.89 | 0.96 | 1.17 | 0.71 |
+| 1000 | 0.4230 | 0.2043 (T=16) | 0.1169 (T=16) | 0.4301 | 0.3019 | 0.6164 (T=16) | 2.07 | 3.62 | 0.98 | 1.40 | 0.69 |
+| 2000 | 4.3626 | 1.6430 (T=16) | 1.9805 (T=8) | 5.8909 | 2.6586 | 5.9228 (T=16) | 2.66 | 2.20 | 0.74 | 1.64 | 0.74 |
+| 4000 | 75.6511 | 24.2927 (T=16) | 59.1421 (T=8) | 70.0332 | 21.3223 | 51.1313 (T=8) | 3.11 | 1.28 | 1.08 | 3.55 | 1.48 |
+
+Para N=4000, que es el caso grande, el mejor T para OpenMP es **T=8** (no T=16). En este equipo hay 12 cores y T=16 oversuscribe: el `T=16` da 51.59s vs `T=8` 51.13s — esencialmente igual, así que la mejor T es 8. Para los Ns chicos (500, 1000, 2000) el T óptimo es 16, pero el speedup sigue debajo de 1× porque la paralelización con `collapse(2)` no compensa el patrón de acceso a memoria (ver conclusiones).
+
+### Detalle de OpenMP por T (mediana de 10 corridas)
+
+| N | T=1 (s) | T=2 (s) | T=4 (s) | T=8 (s) | T=16 (s) | speedup vs T=1 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 500 | 0.293 | 0.163 | 0.109 | 0.079 | 0.062 | 4.73× |
+| 1000 | 2.551 | 1.429 | 0.900 | 0.685 | 0.616 | 4.14× |
+| 2000 | 25.243 | 14.197 | 8.709 | 6.202 | 5.923 | 4.26× |
+| 4000 | 220.793 | 116.216 | 70.657 | 51.131 | 51.592 | 4.32× |
+
+**Observación importante**: el T=1 de OpenMP ya es **mucho más lento** que el `T_seq` (secuencial puro sin OpenMP). Para N=4000, T=1 OpenMP tarda 220s vs 75s del secuencial — **2.9× más lento**. Esto es el *runtime* de OpenMP: incluso con un solo hilo se paga el costo de inicializar el *team*, las variables de control interno (`icv`) y las barriers implícitas al final del `parallel for`. La aceleración interna de OpenMP (T=16 vs T=1) sí es buena (~4.3×), pero el *piso* es tan alto que el speedup respecto al secuencial puro queda debajo de 1× para los Ns chicos.
 
 ### Gráfica
 
@@ -103,15 +114,20 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 
 ### Conclusiones
 
-- **A N chico (500)**: el speedup es modesto en general. Fork destaca con 2.89× por la baja latencia de la primera paralelización de procesos. OpenMP arranca con 0.88×, ligeramente *debajo* del secuencial — el overhead de crear el equipo de hilos y sincronizar domina sobre el cómputo en matrices chicas.
-- **A N=4000** (problema grande):
-  - **Optimización de memoria (transpuesto)** alcanza **3.55×**, la mayor de las cinco estrategias.
-  - **Pthreads** alcanza **3.11×**.
-  - **Fork** se queda en 1.28× (con el overhead de procesos no se justifica tanto en este equipo).
-  - **Optimización de compilación sola** queda en 1.08× (casi no ayuda vs el secuencial).
-  - **OpenMP** alcanza **1.39×**, mejor que fork y que `-O3` solo, pero claramente por debajo de pthreads y del transpuesto.
+- **A N chico (500, 1000, 2000)**: el speedup de OpenMP es **menor que 1×** (0.71, 0.69, 0.74 respectivamente). El `collapse(2)` acelera la ejecución interna de OpenMP (T=16 es ~4.3× más rápido que T=1), pero el *piso* del runtime de OpenMP es alto: incluso con un solo hilo (T=1) tarda 6.6× más que el secuencial puro para N=500. En este rango de N, la paralelización no compensa.
+- **A N=4000** (problema grande), el ranking de las cinco estrategias queda:
+  1. **Optimización de memoria (transpuesto)** — **3.55×** (la mejor).
+  2. **Pthreads** — **3.11×**.
+  3. **OpenMP** — **1.48×** (mejor T = 8).
+  4. **Fork** — 1.28×.
+  5. **Optimización de compilación sola** (`-O3` + variantes) — 1.08×.
 
-- **Conclusión principal**: la optimización de **patrón de acceso a memoria** (transponer B) es la que más impacto tiene en este problema, comparable o superior a la paralelización con pthreads. La optimización de compilación sola no escala bien con N. OpenMP queda como una opción intermedia: supera a fork y a `-O3` solo, pero la paralelización manual con pthreads y, sobre todo, la transposición de B siguen siendo más efectivas en este hardware.
+- **Por qué OpenMP queda tan por debajo de pthreads** (incluso siendo la misma idea de paralelizar con hilos):
+  1. **Patrón de acceso a memoria**. El kernel naive `C[i][j] = Σₖ A[i][k]·B[k][j]` accede a `B` por columna (`B[k*N + j]` salta N enteros entre iteraciones de k). Esto produce cache thrashing en `B`. Pthreads puede repartir el trabajo de forma que cada hilo haga un *bloque* de filas de `A` y se quede con buena localidad. `collapse(2)` reparte iteraciones (i,j) a secas — dos iteraciones consecutivas que tocan el mismo hilo pueden caer lejos en memoria y romper la localidad.
+  2. **Runtime overhead**. La inicialización del team de OpenMP se paga incluso con T=1 (220s vs 75s del secuencial para N=4000, 2.9× más lento). Pthreads con T=1 también paga el costo de crear hilos, pero al menos se nota menos en la versión manual porque el patrón de acceso a memoria sí es cache-friendly.
+  3. **El problema es la memoria, no el paralelismo**. El kernel transpuesto (que accede a `B` por filas) llega a 3.55× sin paralelizar nada — solo reorganizando el acceso. Eso confirma que el cuello de botella es el cache, no el cómputo.
+
+- **Conclusión principal**: en este problema y este hardware, **el patrón de acceso a memoria importa más que la paralelización**. La transpuesta (sin paralelismo) gana. Pthreads gana entre las paralelas porque permite controlar el reparto del trabajo de forma cache-friendly. OpenMP con `collapse(2)` queda intermedio: la directiva es correcta y portable, pero sin una planificación manual del reparto de iteraciones no aprovecha la cache tan bien como pthreads.
 
 ## Archivos generados
 
