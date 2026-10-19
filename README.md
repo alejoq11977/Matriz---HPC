@@ -110,7 +110,7 @@ Comparativa de las 4 estrategias (rama `caso-de-estudio-2`):
 
 Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 
-![Comparativa de las 5 estrategias](experiments/resultados/caso_de_estudio_2_openmp.png)
+![Comparativa de las 5 estrategias](experiments/resultados/caso_de_estudio_2_openmp_v2.png)
 
 ### Conclusiones
 
@@ -147,7 +147,7 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 | `experiments/resultados/caso_de_estudio_2.csv` | Tabla comparativa de speedups (4 estrategias) |
 | `experiments/resultados/caso_de_estudio_2.png` | Gráfica de las 4 estrategias |
 | `experiments/resultados/caso_de_estudio_2_openmp.csv` | Tabla comparativa de speedups (5 estrategias) |
-| `experiments/resultados/caso_de_estudio_2_openmp.png` | Gráfica de las 5 estrategias |
+| `experiments/resultados/caso_de_estudio_2_openmp_v2.png` | Gráfica de las 5 estrategias |
 | `experiments/resultados/medir_log.txt` | Log de la corrida de medición |
 
 ## Cómo reproducir
