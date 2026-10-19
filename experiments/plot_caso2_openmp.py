@@ -200,11 +200,15 @@ for row in filas[1:]:
     parts = row.split(',')
     n = int(parts[0])
     ns_plot.append(n)
-    su_pth.append(_num(parts[6]))
-    su_fork.append(_num(parts[7]))
-    su_full.append(_num(parts[8]))
-    su_mem.append(_num(parts[9]))
-    su_openmp.append(_num(parts[10]))
+    # Header: N,T_seq,T_pth_best,T_fork_best,T_full,T_mem,T_openmp,
+    #         speedup_pth,speedup_fork,speedup_full,speedup_mem,speedup_openmp
+    # Indices: 0  1     2          3          4      5     6
+    #          7           8           9           10          11
+    su_pth.append(_num(parts[7]))
+    su_fork.append(_num(parts[8]))
+    su_full.append(_num(parts[9]))
+    su_mem.append(_num(parts[10]))
+    su_openmp.append(_num(parts[11]))
 
 ax.plot(ns_plot, su_pth, 'o-', label='Pthreads (mejor T)', linewidth=2, color='C0')
 ax.plot(ns_plot, su_fork, 's-', label='Fork (mejor T)', linewidth=2, color='C1')
