@@ -34,7 +34,11 @@
 set -e
 
 CC=${CC:-gcc}
-CC_OPTS="-fopenmp -O0 -Iinclude"
+# Compilamos con -O2 (igual que pthreads, fork, mm_full, matriz_monotonic_t) para
+# que la comparacion de speedup sea justa. Si usaramos -O0, el T_seq (pthreads T=1
+# con -O2) seria artificialmente rapido y el speedup de OpenMP saldria bajo por
+# mezclar el efecto de la paralelizacion con la falta de optimizacion.
+CC_OPTS="-fopenmp -O2 -Iinclude"
 SRC=src/matriz_monotonic_openmp.c
 MOD_LLENADO=modules/llenado.c
 MOD_LLENADO_HDR=include/llenado.h
