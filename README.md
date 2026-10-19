@@ -20,7 +20,7 @@ Este README documenta **el caso 2 con OpenMP**, que es la continuación del caso
 2. **Fork** (la mejor T de las 15 opciones)
 3. **Optimización por compilación** (`mm_full`: `-O3 -march=native -floop-interchange -funroll-loops -floop-nest-optimize`)
 4. **Optimización por memoria** (kernel transpuesto de `matriz_monotonic_t`)
-5. **OpenMP** (paralelización con directivas `#pragma omp parallel for`, compilado con `-fopenmp -O0`)
+5. **OpenMP** (paralelización con `#pragma omp parallel for collapse(2) private(k)` sobre la versión **secuencial inicial**, compilado con `-fopenmp -O0`)
 
 ## Metodología
 
@@ -37,9 +37,44 @@ La **base para calcular el speedup** es la misma en los cinco casos: la mediana 
    N=500, N=1000, N=2000, N=4000
    ```
    para cada binario (`mm_full` y `matriz_monotonic_t`), todas con semilla 42.
-2. `experiments/medir_openmp.sh` compila `matriz_monotonic.c` con `-fopenmp -O0` y corre 10 iteraciones de los mismos 4 Ns, todas con semilla 42. El `-O0` se eligió para medir el speedup *puro* de la paralelización, sin que el compilador reordene loops ni haga vectorización agresiva que enmascare el efecto de OpenMP.
+2. `experiments/medir_openmp.sh` compila `src/matriz_monotonic_openmp.c` (que usa el kernel `modules/tiempo_mult_openmp.c` con directivas OpenMP) con `-fopenmp -O0`, **valida correctitud** comparando la matriz C contra `experiments/verify_ref` con N=10 y semilla 42, y luego corre 10 iteraciones de los mismos 4 Ns, todas con semilla 42. El `-O0` se eligió para medir el speedup *puro* de la paralelización, sin que el compilador reordene loops ni haga vectorización agresiva que enmascare el efecto de OpenMP.
 3. `experiments/plot_caso2.py` lee los CSVs (los nuevos + los de las ramas pthreads y fork), calcula medianas y genera la tabla y la gráfica.
 4. `experiments/plot_caso2_openmp.py` reusa el mismo flujo pero agrega la columna de OpenMP y la 5ta curva a la gráfica.
+
+## OpenMP: elección de directivas
+
+Siguiendo la indicación del profesor, antes de aplicar OpenMP al kernel se revisaron los ejemplos del PDF oficial *OpenMP Application Programming Interface Examples v6.0.1* ([github.com/OpenMP/Examples](https://github.com/OpenMP/Examples/tree/v6.0.1)). Los tres candidatos que aplican al kernel `C[i][j] = Σₖ A[i][k]·B[k][j]` son:
+
+| Ejemplo del PDF | Patrón | Veredicto |
+|---|---|---|
+| **3.1** `ploop.1.c` | `#pragma omp parallel for` sobre un solo loop | Solo paraleliza el loop externo `i`. Con N=4000 eso da 4000 chunks — mal balanceo entre 12 cores. |
+| **3.8** `collapse.1.c` | `#pragma omp for collapse(2)` sobre dos loops anidados | **Elegido.** Une `i` y `j` en un único espacio de N² iteraciones (16 M para N=4000) con buen reparto entre hilos. |
+| **5.3.5** `task_dep.5.c` | `#pragma omp task depend(in/inout)` sobre bloques `BS×BS` | Descartado: asume un kernel bloqueado y dependencias explícitas por bloque; es más complejo de lo que el caso pide. |
+
+El pragma que se aplica al triple loop en `modules/tiempo_mult_openmp.c` es:
+
+```c
+#pragma omp parallel for collapse(2) private(k)
+for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+        for (int k = 0; k < N; k++) {
+            C[i*N + j] += A[i*N + k] * B[k*N + j];
+        }
+    }
+}
+```
+
+**Por qué cada cláusula:**
+
+- **`parallel for`** (combinada) — crea el *team* de hilos y reparte el trabajo con una sola directiva. Más limpio que separar `#pragma omp parallel` + `#pragma omp for`.
+- **`collapse(2)`** — une los loops `i` y `j` en un único espacio de iteraciones de tamaño N×N, que es lo que el ejemplo 3.8 del PDF recomienda para loops anidados donde el trabajo entre iteraciones es similar. El loop `k` queda secuencial dentro de cada `(i, j)` — es la acumulación del producto punto y debe quedarse en un solo hilo.
+- **`private(k)`** — *no* se usa. C99 ya hace a las variables de control de un `for` implícitamente privadas dentro de un loop construct, así que es redundante. Intentarlo explícitamente hace fallar la compilación porque `k` está declarada *dentro* del `for` y no es visible en el punto donde aparece la directiva.
+
+**Por qué NO se necesitan otras cláusulas:**
+
+- `A`, `B`, `C` quedan **`shared`** por defecto, que es correcto: `A` y `B` solo se leen, y cada hilo solo escribe en `C[i*N+j]` para el `(i, j)` que le tocó en el espacio colapsado. No hay race condition sobre `C`.
+- **No hace falta `reduction(+:)`** — la acumulación `C[i][j] += ...` ocurre dentro de un único hilo para cada `(i, j)`, no entre hilos.
+- **No hace falta `critical` ni `atomic`** — no hay región crítica.
 
 ## Resultados
 
@@ -79,8 +114,11 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 | Archivo | Descripción |
 |---|---|
 | `bin/matriz_openmp_O0` | Binario de OpenMP compilado con `-fopenmp -O0` |
+| `src/matriz_monotonic_openmp.c` | Main del binario OpenMP (variante del secuencial inicial) |
+| `modules/tiempo_mult_openmp.c` | Kernel con la directiva `#pragma omp parallel for collapse(2) private(k)` |
+| `include/tiempo_mult_openmp.h` | Header del kernel OpenMP |
 | `experiments/medir_optimizaciones.sh` | Script de 10 corridas para `mm_full` y `matriz_monotonic_t` |
-| `experiments/medir_openmp.sh` | Script que compila y mide 10 corridas del binario OpenMP |
+| `experiments/medir_openmp.sh` | Compila el binario OpenMP, valida contra `verify_ref` y mide 10 corridas |
 | `experiments/plot_caso2.py` | Genera la tabla CSV y la gráfica PNG de las 4 estrategias |
 | `experiments/plot_caso2_openmp.py` | Genera la tabla CSV y la gráfica PNG de las 5 estrategias (incluye OpenMP) |
 | `experiments/resultados/med_mm_full_raw.csv` | 10 corridas de `mm_full` (N=500,1000,2000,4000) |
@@ -98,8 +136,14 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 make all
 bash experiments/medir_optimizaciones.sh 500 1000 2000 4000 10 mm_full matriz_monotonic_t
 python3 experiments/plot_caso2.py
-bash experiments/medir_openmp.sh
+bash experiments/medir_openmp.sh                # valida correctitud y mide OpenMP (3-5 min)
 python3 experiments/plot_caso2_openmp.py
+```
+
+Para un smoke test rápido (1 sola iteración por N, valida todo el pipeline y al final borra los artefactos automáticamente):
+
+```bash
+MODO_TEST=1 bash experiments/medir_openmp.sh
 ```
 
 Los datos de `pthreads` y `fork` se leen directamente de las ramas `origin/pthreads` y `origin/fork` mediante `git show`.
