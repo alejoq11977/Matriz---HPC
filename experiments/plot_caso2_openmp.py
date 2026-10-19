@@ -6,8 +6,13 @@ Lee los datos crudos (10 corridas) de:
   - med_mm_full_raw.csv            (Lab 1: optimizacion de compilacion)
   - med_matriz_monotonic_t_raw.csv (Lab 2: optimizacion de memoria)
   - med_openmp_raw.csv             (Lab 3: paralelizacion con OpenMP)
+                                    con barrido de T = 1, 2, 4, 8, 16
   - resultados_raw.csv de origin/pthreads (para pthreads y secuencial T=1)
   - resultados_fork_raw.csv de origin/fork (para fork)
+
+Para OpenMP, pthreads y fork (las 3 paralelas), elige el mejor T por N
+(minimizando la mediana). Para las optimizaciones (mm_full, transpuesto)
+solo hay un valor por N, asi que se toma la mediana directo.
 
 Calcula mediana por N y velocidad de speedup contra la misma base
 que uso el caso de estudio 1 (T=1 secuencial, mediana de 10 corridas
@@ -113,7 +118,7 @@ with open(f'{BASE}/_fk_raw.csv', 'w') as f:
 print("[2/5] Leyendo CSVs de optimizacion y OpenMP...")
 datos_full = leer_csv(f'{BASE}/med_mm_full_raw.csv')
 datos_mem = leer_csv(f'{BASE}/med_matriz_monotonic_t_raw.csv')
-datos_openmp = leer_csv(f'{BASE}/med_openmp_raw.csv')
+datos_openmp = leer_csv_con_t(f'{BASE}/med_openmp_raw.csv')
 
 if not datos_openmp:
     print("ERROR: falta el CSV de OpenMP. Ejecuta primero medir_openmp.sh")
@@ -135,7 +140,7 @@ pthreads_best = mejor_mediana_con_t(datos_pt, NS)
 fork_best = mejor_mediana_con_t(datos_fk, NS)
 full_med = mediana_por_n(datos_full, NS)
 mem_med = mediana_por_n(datos_mem, NS)
-openmp_med = mediana_por_n(datos_openmp, NS)
+openmp_best = mejor_mediana_con_t(datos_openmp, NS)
 
 # --- 4) Calcular speedups contra la base ---
 print("[4/5] Calculando speedups...")
@@ -148,16 +153,18 @@ for n in NS:
     fk = fork_best.get(n)
     fu = full_med.get(n)
     me = mem_med.get(n)
-    om = openmp_med.get(n)
+    om_pair = openmp_best.get(n)
+    om_t = om_pair[0] if om_pair else None
+    om = om_pair[1] if om_pair else None
     if not ts:
         continue
     row = [str(n)]
     row.append(f'{ts:.4f}')  # T_seq
-    row.append(f'{pth[1]:.4f}' if pth else 'N/A')
-    row.append(f'{fk[1]:.4f}' if fk else 'N/A')
+    row.append(f'{pth[1]:.4f} (T={pth[0]})' if pth else 'N/A')
+    row.append(f'{fk[1]:.4f} (T={fk[0]})' if fk else 'N/A')
     row.append(f'{fu:.4f}' if fu else 'N/A')
     row.append(f'{me:.4f}' if me else 'N/A')
-    row.append(f'{om:.4f}' if om else 'N/A')
+    row.append(f'{om:.4f} (T={om_t})' if om else 'N/A')
     row.append(f'{ts/pth[1]:.2f}' if pth else 'N/A')
     row.append(f'{ts/fk[1]:.2f}' if fk else 'N/A')
     row.append(f'{ts/fu:.2f}' if fu else 'N/A')
@@ -182,15 +189,22 @@ su_full = []
 su_mem = []
 su_openmp = []
 
+def _num(s):
+    """Extrae la parte numerica de una celda como '0.0878 (T=8)' -> 0.0878."""
+    try:
+        return float(s.split('(')[0].strip())
+    except ValueError:
+        return float('nan')
+
 for row in filas[1:]:
     parts = row.split(',')
     n = int(parts[0])
     ns_plot.append(n)
-    su_pth.append(float(parts[6]))
-    su_fork.append(float(parts[7]))
-    su_full.append(float(parts[8]))
-    su_mem.append(float(parts[9]))
-    su_openmp.append(float(parts[10]))
+    su_pth.append(_num(parts[6]))
+    su_fork.append(_num(parts[7]))
+    su_full.append(_num(parts[8]))
+    su_mem.append(_num(parts[9]))
+    su_openmp.append(_num(parts[10]))
 
 ax.plot(ns_plot, su_pth, 'o-', label='Pthreads (mejor T)', linewidth=2, color='C0')
 ax.plot(ns_plot, su_fork, 's-', label='Fork (mejor T)', linewidth=2, color='C1')

@@ -1,7 +1,9 @@
 #!/bin/bash
 # medir_openmp.sh
 # Compila src/matriz_monotonic_openmp.c con -fopenmp -O0 (kernel en
-# modules/tiempo_mult_openmp.c) y mide el tiempo de la multiplicacion.
+# modules/tiempo_mult_openmp.c) y mide el tiempo de la multiplicacion
+# barriendo N (500, 1000, 2000, 4000) y cantidad de hilos OpenMP
+# (1, 2, 4, 8, 16) -- igual que se hizo para pthreads en la otra rama.
 #
 # Antes de medir, valida que la matriz C resultante sea IDENTICA a la de
 # la implementacion de referencia (experiments/verify_ref), con N=10 y
@@ -9,19 +11,23 @@
 #
 # Modos de ejecucion:
 #   MODO_TEST=1 bash experiments/medir_openmp.sh
-#       Hace 1 sola iteracion de cada N (500, 1000, 2000, 4000) para
-#       confirmar que el pipeline completo funciona (compilacion, medicion,
-#       parseo de tiempos, plot). Al final BORRA los artefactos generados
-#       (binario, csv raw, csv tabla, png) para dejar el arbol limpio.
+#       Smoke test RAPIDO: 1 sola iteracion de cada (T, N) pero SOLO con
+#       N=500, 1000, 2000 (omite N=4000 que es el mas lento). Total:
+#       5 T * 3 Ns * 1 iter = 15 lineas en el CSV, ~30-60 segundos.
+#       Sirve para confirmar que el pipeline completo funciona
+#       (compilacion, validacion, barrido de T, parseo, plot). Al final
+#       BORRA los artefactos (binario, csv raw, csv tabla, png).
 #       Pensado para pruebas rapidas en este equipo.
 #
 #   bash experiments/medir_openmp.sh
-#       Hace las 10 corridas completas y DEJA todos los artefactos en su
-#       lugar. Es el modo que se usa para el experimento real.
+#       Barrido completo: 10 iteraciones por cada (T, N) con todos los Ns
+#       y todos los T. Total: 5 T * 4 Ns * 10 iter = 200 lineas en el
+#       CSV, ~15-20 minutos. Es el modo que se usa para el experimento
+#       real. DEJA los artefactos en disco.
 #
 # Salidas (en modo normal):
 #   bin/matriz_openmp_O0
-#   experiments/resultados/med_openmp_raw.csv          (1 header + 40 corridas)
+#   experiments/resultados/med_openmp_raw.csv          (header + 200 corridas)
 #   experiments/resultados/caso_de_estudio_2_openmp.csv
 #   experiments/resultados/caso_de_estudio_2_openmp.png
 
@@ -47,8 +53,9 @@ N_EVAL=10
 SEMILLA=42
 VALOR_MAX=9
 N_VALORES="500 1000 2000 4000"
+N_VALORES_TEST="500 1000 2000"
+T_VALORES="1 2 4 8 16"
 ITERACIONES=10
-N_THREADS_DEFAULT=12
 
 mkdir -p bin
 mkdir -p $SALIDA
@@ -60,8 +67,9 @@ echo "      OK"
 echo ""
 
 # --- [2/5] Validacion contra verify_ref ---
+# La validacion se hace con T=1 para que sea deterministica.
 echo "[2/5] Validando correctitud: matriz C de N=$N_EVAL semilla=$SEMILLA"
-echo "      contra experiments/verify_ref (modo normal)..."
+echo "      contra experiments/verify_ref (modo normal, T=1)..."
 
 if [ ! -f $VERIFY_REF ]; then
     echo "      Compilando verify_ref..."
@@ -71,9 +79,8 @@ fi
 REF_FILE=$SALIDA/_ref_openmp.txt
 OUT_FILE=$SALIDA/_out_openmp.txt
 $VERIFY_REF $N_EVAL $SEMILLA normal > $REF_FILE
-$BIN $N_EVAL $VALOR_MAX $SEMILLA > $OUT_FILE
+OMP_NUM_THREADS=1 $BIN $N_EVAL $VALOR_MAX $SEMILLA > $OUT_FILE
 
-# Extraer solo las lineas que son SOLO numeros (la matriz C)
 ref_matrix=$(grep -E '^[0-9]' $REF_FILE | sed 's/[[:space:]]*$//')
 bin_matrix=$(grep -E '^[0-9]' $OUT_FILE | sed 's/[[:space:]]*$//')
 
@@ -100,21 +107,28 @@ echo ""
 # --- [3/5] Smoke test / medicion real ---
 if [ "$MODO_TEST" = "1" ]; then
     ITERACIONES=1
-    echo "[3/5] MODO TEST: 1 iteracion de cada N (smoke test)"
+    N_VALORES_RUN=$N_VALORES_TEST
+    echo "[3/5] MODO TEST: 1 iteracion de cada (T, N) -- solo N=500,1000,2000"
+    echo "      T_VALORES=$T_VALORES  N_VALORES=$N_VALORES_RUN"
 else
-    echo "[3/5] Midiendo $ITERACIONES corridas, variando N en cada iteracion"
-    echo "      Ns: $N_VALORES"
-    echo "      Hilos OpenMP: \${OMP_NUM_THREADS:-$N_THREADS_DEFAULT} (configurable via env)"
+    N_VALORES_RUN=$N_VALORES
+    echo "[3/5] Midiendo $ITERACIONES corridas por cada (T, N)"
+    echo "      T_VALORES=$T_VALORES  N_VALORES=$N_VALORES"
+    echo "      Total: 5 T * 4 Ns * 10 iter = 200 lineas (~15-20 min)"
 fi
 
-echo "N,run,tiempo" > $SALIDA_RAW
-for iter in $(seq 1 $ITERACIONES); do
-    for N in $N_VALORES; do
-        t=$($BIN $N $VALOR_MAX $SEMILLA 2>/dev/null | grep -oP 'Tiempo medido con CLOCK_MONOTONIC_RAW: \K[0-9.]+')
-        echo "$N,$iter,$t" >> $SALIDA_RAW
-        printf "      iter=%d N=%d t=%ss\n" "$iter" "$N" "$t"
+echo "N,T,run,tiempo" > $SALIDA_RAW
+for T in $T_VALORES; do
+    export OMP_NUM_THREADS=$T
+    for iter in $(seq 1 $ITERACIONES); do
+        for N in $N_VALORES_RUN; do
+            t=$($BIN $N $VALOR_MAX $SEMILLA 2>/dev/null | grep -oP 'Tiempo medido con CLOCK_MONOTONIC_RAW: \K[0-9.]+')
+            echo "$N,$T,$iter,$t" >> $SALIDA_RAW
+            printf "      T=%2d  iter=%2d  N=%4d  t=%ss\n" "$T" "$iter" "$N" "$t"
+        done
     done
 done
+unset OMP_NUM_THREADS
 echo "      $(wc -l < $SALIDA_RAW) lineas en $SALIDA_RAW"
 echo ""
 

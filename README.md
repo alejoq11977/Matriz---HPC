@@ -37,7 +37,7 @@ La **base para calcular el speedup** es la misma en los cinco casos: la mediana 
    N=500, N=1000, N=2000, N=4000
    ```
    para cada binario (`mm_full` y `matriz_monotonic_t`), todas con semilla 42.
-2. `experiments/medir_openmp.sh` compila `src/matriz_monotonic_openmp.c` (que usa el kernel `modules/tiempo_mult_openmp.c` con directivas OpenMP) con `-fopenmp -O0`, **valida correctitud** comparando la matriz C contra `experiments/verify_ref` con N=10 y semilla 42, y luego corre 10 iteraciones de los mismos 4 Ns, todas con semilla 42. El `-O0` se eligió para medir el speedup *puro* de la paralelización, sin que el compilador reordene loops ni haga vectorización agresiva que enmascare el efecto de OpenMP.
+2. `experiments/medir_openmp.sh` compila `src/matriz_monotonic_openmp.c` (que usa el kernel `modules/tiempo_mult_openmp.c` con directivas OpenMP) con `-fopenmp -O0`, **valida correctitud** comparando la matriz C contra `experiments/verify_ref` con N=10 y semilla 42, y luego corre un **barrido completo**: 10 iteraciones por cada combinación de (T, N), con `T ∈ {1, 2, 4, 8, 16}` y `N ∈ {500, 1000, 2000, 4000}` — **igual que se hizo para pthreads en la otra rama**. El `-O0` se eligió para medir el speedup *puro* de la paralelización, sin que el compilador reordene loops ni haga vectorización agresiva que enmascare el efecto de OpenMP. Total: 5 T × 4 Ns × 10 iter = **200 corridas, ~15-20 min**.
 3. `experiments/plot_caso2.py` lee los CSVs (los nuevos + los de las ramas pthreads y fork), calcula medianas y genera la tabla y la gráfica.
 4. `experiments/plot_caso2_openmp.py` reusa el mismo flujo pero agrega la columna de OpenMP y la 5ta curva a la gráfica.
 
@@ -54,7 +54,7 @@ Siguiendo la indicación del profesor, antes de aplicar OpenMP al kernel se revi
 El pragma que se aplica al triple loop en `modules/tiempo_mult_openmp.c` es:
 
 ```c
-#pragma omp parallel for collapse(2) private(k)
+#pragma omp parallel for collapse(2)
 for (int i = 0; i < N; i++) {
     for (int j = 0; j < N; j++) {
         for (int k = 0; k < N; k++) {
@@ -79,6 +79,10 @@ for (int i = 0; i < N; i++) {
 ## Resultados
 
 ### Tabla comparativa de speedups (vs mismo secuencial)
+
+Para las tres estrategias paralelas (pthreads, fork, OpenMP), la columna `T_*_best` muestra la mediana del **mejor T** por N — el que dio el menor tiempo. El T específico se indica entre paréntesis.
+
+> **Nota**: la tabla siguiente se regenera automáticamente al correr `experiments/medir_openmp.sh` (que ahora barre T=1,2,4,8,16) + `experiments/plot_caso2_openmp.py`. Los valores que se muestran a continuación son los que dejó la corrida de prueba inicial; al correr el barrido completo con las directivas OpenMP reales, los speedups van a cambiar.
 
 | N | T_seq (s) | T_pth_best (s) | T_fork_best (s) | T_full (s) | T_mem (s) | T_openmp (s) | speedup_pth | speedup_fork | speedup_full | speedup_mem | speedup_openmp |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -115,15 +119,15 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 |---|---|
 | `bin/matriz_openmp_O0` | Binario de OpenMP compilado con `-fopenmp -O0` |
 | `src/matriz_monotonic_openmp.c` | Main del binario OpenMP (variante del secuencial inicial) |
-| `modules/tiempo_mult_openmp.c` | Kernel con la directiva `#pragma omp parallel for collapse(2) private(k)` |
+| `modules/tiempo_mult_openmp.c` | Kernel con la directiva `#pragma omp parallel for collapse(2)` |
 | `include/tiempo_mult_openmp.h` | Header del kernel OpenMP |
 | `experiments/medir_optimizaciones.sh` | Script de 10 corridas para `mm_full` y `matriz_monotonic_t` |
-| `experiments/medir_openmp.sh` | Compila el binario OpenMP, valida contra `verify_ref` y mide 10 corridas |
+| `experiments/medir_openmp.sh` | Compila el binario OpenMP, valida contra `verify_ref` y mide el barrido completo (5 T × 4 Ns × 10 iter = 200 corridas) |
 | `experiments/plot_caso2.py` | Genera la tabla CSV y la gráfica PNG de las 4 estrategias |
 | `experiments/plot_caso2_openmp.py` | Genera la tabla CSV y la gráfica PNG de las 5 estrategias (incluye OpenMP) |
 | `experiments/resultados/med_mm_full_raw.csv` | 10 corridas de `mm_full` (N=500,1000,2000,4000) |
 | `experiments/resultados/med_matriz_monotonic_t_raw.csv` | 10 corridas de `matriz_monotonic_t` (mismos N) |
-| `experiments/resultados/med_openmp_raw.csv` | 10 corridas de `matriz_openmp_O0` (mismos N) |
+| `experiments/resultados/med_openmp_raw.csv` | 200 corridas de `matriz_openmp_O0` (5 T × 4 Ns × 10 iter), header `N,T,run,tiempo` |
 | `experiments/resultados/caso_de_estudio_2.csv` | Tabla comparativa de speedups (4 estrategias) |
 | `experiments/resultados/caso_de_estudio_2.png` | Gráfica de las 4 estrategias |
 | `experiments/resultados/caso_de_estudio_2_openmp.csv` | Tabla comparativa de speedups (5 estrategias) |
@@ -136,14 +140,14 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 make all
 bash experiments/medir_optimizaciones.sh 500 1000 2000 4000 10 mm_full matriz_monotonic_t
 python3 experiments/plot_caso2.py
-bash experiments/medir_openmp.sh                # valida correctitud y mide OpenMP (3-5 min)
+bash experiments/medir_openmp.sh                # valida + barre T=1,2,4,8,16 x N=500,1000,2000,4000 x 10 iter (~15-20 min)
 python3 experiments/plot_caso2_openmp.py
 ```
 
-Para un smoke test rápido (1 sola iteración por N, valida todo el pipeline y al final borra los artefactos automáticamente):
+Para un smoke test rápido (1 sola iteración por cada T×N, omite N=4000 para no demorar — valida todo el pipeline y al final borra los artefactos automáticamente):
 
 ```bash
-MODO_TEST=1 bash experiments/medir_openmp.sh
+MODO_TEST=1 bash experiments/medir_openmp.sh  # ~30-60 segundos
 ```
 
 Los datos de `pthreads` y `fork` se leen directamente de las ramas `origin/pthreads` y `origin/fork` mediante `git show`.
