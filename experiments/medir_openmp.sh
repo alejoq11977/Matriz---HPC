@@ -26,7 +26,7 @@
 #       real. DEJA los artefactos en disco.
 #
 # Salidas (en modo normal):
-#   bin/matriz_openmp_O0
+#   bin/matriz_openmp_O2
 #   experiments/resultados/med_openmp_raw.csv          (header + 200 corridas)
 #   experiments/resultados/caso_de_estudio_2_openmp.csv
 #   experiments/resultados/caso_de_estudio_2_openmp.png
@@ -46,7 +46,7 @@ MOD_MEM=modules/memoria.c
 MOD_MEM_HDR=include/memoria.h
 MOD_TIEMPO=modules/tiempo_mult_openmp.c
 MOD_TIEMPO_HDR=include/tiempo_mult_openmp.h
-BIN=bin/matriz_openmp_O0
+BIN=bin/matriz_openmp_O2
 VERIFY_REF=experiments/verify_ref
 SALIDA=experiments/resultados
 SALIDA_RAW=$SALIDA/med_openmp_raw.csv

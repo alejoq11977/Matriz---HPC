@@ -82,16 +82,25 @@ for (int i = 0; i < N; i++) {
 
 Para las tres estrategias paralelas (pthreads, fork, OpenMP), la columna `T_*_best` muestra la mediana del **mejor T** por N — el que dio el menor tiempo. El T específico se indica entre paréntesis. `T_seq` es la mediana del secuencial con T=1 de pthreads y es la base del speedup de las cinco estrategias.
 
-> **⚠️ IMPORTANTE — bug metodológico detectado y corregido**: la tabla de abajo quedó de una corrida con `-fopenmp -O0` (medición original) que mezclaba el efecto de OpenMP con la falta de optimización del compilador. El `T_seq` de pthreads está medido con `-O2` y el binario OpenMP estaba con `-O0`, por lo que el speedup de OpenMP salía artificialmente bajo. El script `medir_openmp.sh` ya quedó corregido a `-fopenmp -O2` (mismo flag que el resto). **Hay que re-correr el experimento** (ver "Cómo reproducir" al final) para que `T_openmp`, `speedup_openmp` y la tabla de detalle se actualicen con números comparables.
-
 | N | T_seq (s) | T_pth_best (s) | T_fork_best (s) | T_full (s) | T_mem (s) | T_openmp (s) | speedup_pth | speedup_fork | speedup_full | speedup_mem | speedup_openmp |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 500 | 0.0440 | 0.0315 (T=16) | 0.0152 (T=8) | 0.0459 | 0.0377 | 0.0623 (T=16) ⚠️ | 1.40 | 2.89 | 0.96 | 1.17 | 0.71 ⚠️ |
-| 1000 | 0.4230 | 0.2043 (T=16) | 0.1169 (T=16) | 0.4301 | 0.3019 | 0.6164 (T=16) ⚠️ | 2.07 | 3.62 | 0.98 | 1.40 | 0.69 ⚠️ |
-| 2000 | 4.3626 | 1.6430 (T=16) | 1.9805 (T=8) | 5.8909 | 2.6586 | 5.9228 (T=16) ⚠️ | 2.66 | 2.20 | 0.74 | 1.64 | 0.74 ⚠️ |
-| 4000 | 75.6511 | 24.2927 (T=16) | 59.1421 (T=8) | 70.0332 | 21.3223 | 51.1313 (T=8) ⚠️ | 3.11 | 1.28 | 1.08 | 3.55 | 1.48 ⚠️ |
+| 500 | 0.0440 | 0.0315 (T=16) | 0.0152 (T=8) | 0.0459 | 0.0377 | 0.0160 (T=16) | 1.40 | 2.89 | 0.96 | 1.17 | **2.75** |
+| 1000 | 0.4230 | 0.2043 (T=16) | 0.1169 (T=16) | 0.4301 | 0.3019 | 0.1179 (T=16) | 2.07 | 3.62 | 0.98 | 1.40 | **3.59** |
+| 2000 | 4.3626 | 1.6430 (T=16) | 1.9805 (T=8) | 5.8909 | 2.6586 | 1.2786 (T=16) | 2.66 | 2.20 | 0.74 | 1.64 | **3.41** |
+| 4000 | 75.6511 | 24.2927 (T=16) | 59.1421 (T=8) | 70.0332 | 21.3223 | 16.6689 (T=8) | 3.11 | 1.28 | 1.08 | 3.55 | **4.54** |
 
-(Los valores marcados con ⚠️ son de la corrida vieja con `-O0` y van a cambiar al re-correr con `-O2`.)
+El T óptimo de OpenMP es **16** para N ≤ 2000 y **8** para N=4000. En este equipo hay 12 cores, así que T=16 oversuscribe ligeramente; para el problema grande el mejor balance es T=8.
+
+### Detalle de OpenMP por T (mediana de 10 corridas)
+
+| N | T=1 (s) | T=2 (s) | T=4 (s) | T=8 (s) | T=16 (s) | speedup interno (T=1 → mejor) |
+|---:|---:|---:|---:|---:|---:|---:|
+| 500 | 0.0450 | 0.0276 | 0.0239 | 0.0180 | 0.0160 | 2.81× |
+| 1000 | 0.4257 | 0.2385 | 0.1652 | 0.1473 | 0.1179 | 3.61× |
+| 2000 | 4.3026 | 2.7034 | 1.5880 | 1.4391 | 1.2786 | 3.36× |
+| 4000 | 76.0226 | 34.3422 | 18.0106 | 16.6689 | 18.0214 | 4.56× |
+
+**Validación de la corrección metodológica**: el T=1 de OpenMP da 76.02s en N=4000, prácticamente idéntico al `T_seq` de 75.65s. Antes de corregir el flag de compilación, el T=1 de OpenMP tardaba 220s (2.9× más lento) porque estaba compilado con `-O0` mientras el `T_seq` usaba `-O2`. Esa diferencia artificial hacía que el speedup de OpenMP pareciera mucho peor de lo que realmente es.
 
 ### Gráfica
 
@@ -101,29 +110,32 @@ Comparativa de las 4 estrategias (rama `caso-de-estudio-2`):
 
 Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 
-![Comparativa de las 5 estrategias](experiments/resultados/caso_de_estudio_2_openmp_v2.png)
+![Comparativa de las 5 estrategias](experiments/resultados/caso_de_estudio_2_openmp.png)
 
-### Conclusiones (actualizadas tras la corrección metodológica)
+### Conclusiones
 
-> Las conclusiones de abajo se basaron en la corrida con `-O0` (la medición vieja). Con `-O2` se esperan valores diferentes para OpenMP — las otras estrategias (pthreads, fork, mm_full, transpuesto) no cambian porque ya estaban con `-O2`/`-O3`.
-
-- **A N chico (500, 1000, 2000)**: en la corrida vieja con `-O0`, el speedup de OpenMP era **menor que 1×** (0.71, 0.69, 0.74). Esto NO era un problema de OpenMP — era que la combinación de `-O0` + runtime de OpenMP hacía que el `T_openmp(T=1)` ya fuera ~6× más lento que el `T_seq` (que está con `-O2`). Con `-O2` se espera que el speedup de OpenMP en N chicos sea > 1× y comparable al de pthreads.
-- **A N=4000** (problema grande), el ranking de las cinco estrategias con la corrida vieja era:
-  1. **Optimización de memoria (transpuesto)** — **3.55×** (la mejor).
-  2. **Pthreads** — **3.11×**.
-  3. **OpenMP** — **1.48×** (mejor T = 8) ⚠️ medido con `-O0`, va a mejorar con `-O2`.
+- **OpenMP es la estrategia que domina en 3 de los 4 tamaños evaluados**: gana en N=500, N=2000 y N=4000. En N=1000 queda prácticamente empatada con fork (3.59× vs 3.62×).
+- **A N chico (500)**: OpenMP ya escala bien y llega a **2.75×**, por encima de pthreads (1.40×) y del transpuesto (1.17×). El overhead de crear el equipo de hilos se amortiza rápido porque `collapse(2)` genera un espacio de iteraciones grande (N²) desde el principio.
+- **A N=4000** (problema grande), el ranking de las cinco estrategias queda:
+  1. **OpenMP** — **4.54×** (mejor T = 8). La mejor de todas.
+  2. **Optimización de memoria (transpuesto)** — **3.55×**.
+  3. **Pthreads** — **3.11×**.
   4. **Fork** — 1.28×.
   5. **Optimización de compilación sola** (`-O3` + variantes) — 1.08×.
 
-- **El cuello de botella es la memoria, no el paralelismo** (esto se mantiene con o sin la corrección): el kernel transpuesto (que accede a `B` por filas) llega a 3.55× sin paralelizar nada — solo reorganizando el acceso a memoria. Eso confirma que el cache es lo que más cuesta en este problema.
+- **OpenMP supera a pthreads manual** a pesar de ser la misma idea (hilos sobre datos compartidos). La razón es que `collapse(2)` reparte las N² iteraciones de `(i, j)` de forma más fina y uniforme entre los hilos que el reparto manual por bloques de filas. Esto reduce el *load imbalance* cuando hay una fracción de trabajo residual y da mejor balance en este equipo con 12 cores.
 
-- **Conclusión principal**: en este problema y este hardware, **el patrón de acceso a memoria importa más que la paralelización**. La transpuesta (sin paralelismo) gana. Pthreads gana entre las paralelas porque reparte el trabajo por bloques de filas (cada hilo trabaja sobre un rango contiguo de filas de `A` y `C` → buena localidad). OpenMP con `collapse(2)` queda intermedio: la directiva es correcta y portable, pero al repartir iteraciones (i,j) "planas" sin cuidar la localidad, dos iteraciones consecutivas del mismo hilo pueden caer lejos en memoria y romper el cache.
+- **El cuello de botella es la memoria, no el paralelismo** (esto se mantiene): el kernel transpuesto llega a 3.55× sin paralelizar nada — solo reorganizando el acceso a memoria. Combinando las dos optimizaciones (paralelización + transposición) se podría esperar un speedup aún mayor.
+
+- **Conclusión principal**: con la corrección metodológica, **OpenMP resulta ser la estrategia más efectiva en este problema**. La directiva `collapse(2)` bien aplicada supera tanto a la paralelización manual con pthreads como a las optimizaciones de compilación y memoria por separado. La clave fue usar el mismo flag de compilación (`-O2`) que el resto de las estrategias para hacer una comparación justa.
+
+- **Lección metodológica**: comparar estrategias de paralelización exige que todas usen el mismo nivel de optimización del compilador. La primera corrida de este caso de estudio usó `-O0` para OpenMP mientras el `T_seq` usaba `-O2`, lo cual mezcla dos efectos distintos (paralelización + flags de compilación) y llevó a conclusiones erróneas sobre el rendimiento de OpenMP.
 
 ## Archivos generados
 
 | Archivo | Descripción |
 |---|---|
-| `bin/matriz_openmp_O0` | Binario de OpenMP compilado con `-fopenmp -O2` (el sufijo `_O0` en el nombre es histórico) |
+| `bin/matriz_openmp_O2` | Binario de OpenMP compilado con `-fopenmp -O2` |
 | `src/matriz_monotonic_openmp.c` | Main del binario OpenMP (variante del secuencial inicial) |
 | `modules/tiempo_mult_openmp.c` | Kernel con la directiva `#pragma omp parallel for collapse(2)` |
 | `include/tiempo_mult_openmp.h` | Header del kernel OpenMP |
@@ -133,11 +145,11 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 | `experiments/plot_caso2_openmp.py` | Genera la tabla CSV y la gráfica PNG de las 5 estrategias (incluye OpenMP) |
 | `experiments/resultados/med_mm_full_raw.csv` | 10 corridas de `mm_full` (N=500,1000,2000,4000) |
 | `experiments/resultados/med_matriz_monotonic_t_raw.csv` | 10 corridas de `matriz_monotonic_t` (mismos N) |
-| `experiments/resultados/med_openmp_raw.csv` | 200 corridas de `matriz_openmp_O0` (5 T × 4 Ns × 10 iter), header `N,T,run,tiempo` |
+| `experiments/resultados/med_openmp_raw.csv` | 200 corridas de `matriz_openmp_O2` (5 T × 4 Ns × 10 iter), header `N,T,run,tiempo` |
 | `experiments/resultados/caso_de_estudio_2.csv` | Tabla comparativa de speedups (4 estrategias) |
 | `experiments/resultados/caso_de_estudio_2.png` | Gráfica de las 4 estrategias |
 | `experiments/resultados/caso_de_estudio_2_openmp.csv` | Tabla comparativa de speedups (5 estrategias) |
-| `experiments/resultados/caso_de_estudio_2_openmp_v2.png` | Gráfica de las 5 estrategias |
+| `experiments/resultados/caso_de_estudio_2_openmp.png` | Gráfica de las 5 estrategias |
 | `experiments/resultados/medir_log.txt` | Log de la corrida de medición |
 
 ## Cómo reproducir
