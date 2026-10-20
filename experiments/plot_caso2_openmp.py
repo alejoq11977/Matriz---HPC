@@ -214,10 +214,11 @@ ax.plot(ns_plot, su_pth, 'o-', label='Pthreads (mejor T)', linewidth=2, color='C
 ax.plot(ns_plot, su_fork, 's-', label='Fork (mejor T)', linewidth=2, color='C1')
 ax.plot(ns_plot, su_full, '^-', label='Optimizacion compilacion (mm_full)', linewidth=2, color='C2')
 ax.plot(ns_plot, su_mem, 'd-', label='Optimizacion memoria (transpuesto)', linewidth=2, color='C3')
-ax.plot(ns_plot, su_openmp, '*-', label='OpenMP (-fopenmp -O0)', linewidth=2, color='C4', markersize=12)
+ax.plot(ns_plot, su_openmp, '*-', label='OpenMP (-fopenmp -O2)', linewidth=2, color='C4', markersize=12)
 
 ax.set_xlabel('Tamano de matriz N')
-ax.set_ylabel('Speedup (vs secuencial con -O0, semilla 42)')
+ax.set_ylabel('Speedup (vs secuencial con -O2, semilla 42)')
+ax.axhline(1.0, color='gray', linestyle='--', linewidth=1, alpha=0.7)
 ax.set_title('Caso de estudio 2: comparacion de las 5 estrategias de paralelizacion y optimizacion')
 ax.legend(loc='upper left')
 ax.grid(True, alpha=0.3)

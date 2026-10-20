@@ -37,7 +37,7 @@ La **base para calcular el speedup** es la misma en los cinco casos: la mediana 
    N=500, N=1000, N=2000, N=4000
    ```
    para cada binario (`mm_full` y `matriz_monotonic_t`), todas con semilla 42.
-2. `experiments/medir_openmp.sh` compila `src/matriz_monotonic_openmp.c` (que usa el kernel `modules/tiempo_mult_openmp.c` con directivas OpenMP) con `-fopenmp -O2` (el mismo flag que usan pthreads, fork, mm_full y matriz_monotonic_t en sus binarios), **valida correctitud** comparando la matriz C contra `experiments/verify_ref` con N=10 y semilla 42, y luego corre un **barrido completo**: 10 iteraciones por cada combinación de (T, N), con `T ∈ {1, 2, 4, 8, 16}` y `N ∈ {500, 1000, 2000, 4000}` — **igual que se hizo para pthreads en la otra rama**. Total: 5 T × 4 Ns × 10 iter = **200 corridas, ~15-20 min**.
+2. `experiments/medir_openmp.sh` compila `src/matriz_monotonic_openmp.c` (que usa el kernel `modules/tiempo_mult_openmp.c` con directivas OpenMP) con `-fopenmp -O2` (el mismo flag que usan pthreads, fork, mm_full y matriz_monotonic_t en sus binarios), **valida correctitud** comparando la matriz C contra `experiments/verify_ref` con N=10 y semilla 42, y luego corre un **barrido completo**: 10 iteraciones por cada combinación de (T, N), con `T ∈ {1, 2, 4, 8, 16}` y `N ∈ {500, 1000, 2000, 4000}` — **igual que se hizo para pthreads en la otra rama**. Total: 5 T × 4 Ns × 10 iter = **200 corridas, ~30 min** (la corrida de referencia tardó 1785 s).
 3. `experiments/plot_caso2.py` lee los CSVs (los nuevos + los de las ramas pthreads y fork), calcula medianas y genera la tabla y la gráfica.
 4. `experiments/plot_caso2_openmp.py` reusa el mismo flujo pero agrega la columna de OpenMP y la 5ta curva a la gráfica.
 
@@ -158,7 +158,7 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 make all
 bash experiments/medir_optimizaciones.sh 500 1000 2000 4000 10 mm_full matriz_monotonic_t
 python3 experiments/plot_caso2.py
-bash experiments/medir_openmp.sh                # valida + barre T=1,2,4,8,16 x N=500,1000,2000,4000 x 10 iter (~15-20 min)
+bash experiments/medir_openmp.sh                # valida + barre T=1,2,4,8,16 x N=500,1000,2000,4000 x 10 iter (~30 min)
 python3 experiments/plot_caso2_openmp.py
 ```
 

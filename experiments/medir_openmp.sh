@@ -22,7 +22,7 @@
 #   bash experiments/medir_openmp.sh
 #       Barrido completo: 10 iteraciones por cada (T, N) con todos los Ns
 #       y todos los T. Total: 5 T * 4 Ns * 10 iter = 200 lineas en el
-#       CSV, ~15-20 minutos. Es el modo que se usa para el experimento
+#       CSV, ~30 minutos. Es el modo que se usa para el experimento
 #       real. DEJA los artefactos en disco.
 #
 # Salidas (en modo normal):
@@ -118,7 +118,7 @@ else
     N_VALORES_RUN=$N_VALORES
     echo "[3/5] Midiendo $ITERACIONES corridas por cada (T, N)"
     echo "      T_VALORES=$T_VALORES  N_VALORES=$N_VALORES"
-    echo "      Total: 5 T * 4 Ns * 10 iter = 200 lineas (~15-20 min)"
+    echo "      Total: 5 T * 4 Ns * 10 iter = 200 lineas (~30 min)"
 fi
 
 echo "N,T,run,tiempo" > $SALIDA_RAW
