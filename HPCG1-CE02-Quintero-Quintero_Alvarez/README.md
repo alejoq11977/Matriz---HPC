@@ -50,15 +50,18 @@ sudo apt install texlive-latex-recommended texlive-fonts-recommended
 
 ## Antes de entregar
 
-1. **Completar la segunda máquina.** El benchmark se mide con
-   `bash experiments/bench.sh <etiqueta> 500 1000 2000 4000` en cada equipo
+1. **Completar la segunda máquina.** El benchmark y el perfilado se miden con
+   `bash experiments/bench.sh <etiqueta> 500 1000 2000 4000` y
+   `bash experiments/perfilar.sh <etiqueta>` en cada equipo
    (ver `experiments/REPRODUCIR_OTRA_MAQUINA.md`). Después, en el equipo
-   principal: `python3 experiments/plot_benchmark.py`.
+   principal: `python3 experiments/plot_benchmark.py` y
+   `python3 experiments/plot_perfilado.py`.
 2. **Rellenar la tabla de comparación** en `secciones/10-resultados.tex` con los
    datos de la máquina B y recalcular la columna `%\Delta`.
-3. **Regenerar las figuras** de `figuras/benchmark_maquinas.png` y
-   `figuras/benchmark_tiempos.png` copiándolas de
-   `experiments/resultados/benchmark/`.
+3. **Regenerar las figuras** de `figuras/benchmark_maquinas.png`,
+   `figuras/benchmark_tiempos.png` y `figuras/cache_miss_rate_maquinas.png`
+   copiándolas de `experiments/resultados/benchmark/` y
+   `experiments/resultados/perfilado/`.
 4. **Ajustar la portada** (`portada.tex`): fecha de entrega y, si cambia,
    el título.
 5. **Renombrar la carpeta y el PDF** con los nombres finales de los integrantes:
@@ -74,6 +77,7 @@ sudo apt install texlive-latex-recommended texlive-fonts-recommended
 | `comparativa_5_estrategias.png` | `experiments/resultados/caso_de_estudio_2_openmp.png` |
 | `comparativa_4_estrategias.png` | `experiments/resultados/caso_de_estudio_2.png` |
 | `cache_miss_rate.png` | `experiments/resultados/perfilado/cache_miss_rate.png` |
+| `cache_miss_rate_maquinas.png` | `experiments/resultados/perfilado/cache_miss_rate_maquinas.png` |
 | `footprint_memoria.png` | `experiments/resultados/perfilado/footprint_memoria.png` |
 | `benchmark_maquinas.png` | `experiments/resultados/benchmark/benchmark_maquinas.png` |
 | `benchmark_tiempos.png` | `experiments/resultados/benchmark/benchmark_tiempos.png` |

@@ -90,25 +90,29 @@ ITERACIONES=3 bash experiments/bench.sh MaquinaB 500 1000 2000 4000
 
 ```bash
 cd Matriz---HPC
-bash experiments/perfilar.sh
+bash experiments/perfilar.sh MaquinaB
 ```
 
-Genera en `experiments/resultados/perfilado/`:
+Genera en `experiments/resultados/perfilado/MaquinaB/`:
 
 | Archivo | Contenido |
 |---|---|
 | `gprof_secuencial.txt`, `gprof_transpuesto.txt`, `gprof_openmp.txt` | Perfil de CPU (GProf) |
 | `cachegrind_*.txt` | Métricas de cache: D1 misses, miss rate, LL misses |
 | `rss.csv` | Footprint de memoria (max RSS) por variante |
-| `resumen_perfilado.csv` | Tabla consolidada |
-| `cache_miss_rate.png`, `footprint_memoria.png` | Gráficas |
 | `hardware.txt` | Info del equipo |
+
+**El perfilado se separa por máquina a propósito.** Cachegrind simula la
+jerarquía de caché **real** del equipo donde corre (la lee del CPUID), así que
+las tasas de fallo dependen del hardware. Los resultados de la máquina A ya
+están medidos y **no hay que volver a correrlos**; lo que falta es medir la
+máquina B para poder comparar el efecto de la caché en cada hardware.
 
 El perfilado con Cachegrind es **muy lento** (simula la cache instrucción a
 instrucción). Usa `N=500` (el default). Para más N:
 
 ```bash
-N_PERFILADO=1000 bash experiments/perfilar.sh    # tarda mucho más
+N_PERFILADO=1000 bash experiments/perfilar.sh MaquinaB    # tarda mucho más
 ```
 
 ---
@@ -116,18 +120,26 @@ N_PERFILADO=1000 bash experiments/perfilar.sh    # tarda mucho más
 ## 4. Traerse los resultados
 
 Los archivos que hay que copiar de vuelta al equipo principal son **todos** los
-de `experiments/resultados/benchmark/` y `experiments/resultados/perfilado/`:
+de `experiments/resultados/benchmark/` y **solo la carpeta de tu máquina** en
+`experiments/resultados/perfilado/`:
 
 ```bash
 # Desde la maquina nueva, por scp (ajustar usuario@ip)
 scp -r experiments/resultados/benchmark/*  usuario@IP_PRINCIPAL:~/U/HPC/mult_matriz/experiments/resultados/benchmark/
-scp -r experiments/resultados/perfilado/*  usuario@IP_PRINCIPAL:~/U/HPC/mult_matriz/experiments/resultados/perfilado/
+scp -r experiments/resultados/perfilado/MaquinaB  usuario@IP_PRINCIPAL:~/U/HPC/mult_matriz/experiments/resultados/perfilado/
 ```
+
+**Ojo con esto**: el perfilado está separado por máquina
+(`perfilado/MaquinaA/` y `perfilado/MaquinaB/`), así que copiar tu carpeta
+`MaquinaB` **no pisa** los datos de la máquina A, que ya están medidos.
+Si copiaste con `scp -r .../perfilado/*` (con `*` en vez del nombre de la
+carpeta), borrá la carpeta `MaquinaA` que se haya pisado y volvé a copiarla
+desde el equipo principal.
 
 Alternativa: pasarlos por USB o comprimirlos:
 
 ```bash
-tar czf benchmark.tar.gz experiments/resultados/benchmark experiments/resultados/perfilado
+tar czf resultados.tar.gz experiments/resultados/benchmark experiments/resultados/perfilado/MaquinaB
 ```
 
 **No** copies la carpeta `.tools/` (83 MB de binarios que no sirven en otra
@@ -153,9 +165,21 @@ genera:
 - `experiments/resultados/benchmark/benchmark_maquinas.png` — speedup por máquina
 - `experiments/resultados/benchmark/benchmark_tiempos.png` — tiempos absolutos
 
-**Importante**: la etiqueta que le pases a `bench.sh` es la que aparece en las
-tablas y gráficas. Usá la misma que en la máquina A para que las comparativas
-sean legibles (en este repo la de esta máquina quedó como `MaquinaA`).
+`plot_perfilado.py` recorre todas las carpetas de `experiments/resultados/perfilado/`
+y genera:
+
+- `experiments/resultados/perfilado/resumen_perfilado.csv` — tabla consolidada
+  con una columna por máquina
+- `experiments/resultados/perfilado/cache_miss_rate.png` — variantes del kernel
+  dentro de cada máquina
+- `experiments/resultados/perfilado/cache_miss_rate_maquinas.png` — **comparación
+  del miss rate entre máquinas**
+- `experiments/resultados/perfilado/footprint_memoria.png` — footprint de memoria
+
+**Importante**: la etiqueta que le pases a `bench.sh` y a `perfilar.sh` es la
+que aparece en las tablas y gráficas. Usá la misma que en la máquina A para que
+las comparativas sean legibles (en este repo la de esta máquina quedó como
+`MaquinaA`).
 
 ---
 
@@ -179,7 +203,7 @@ En la máquina nueva, antes de correr:
 git clone -b caso-de-estudio-2-openmp git@github.com:alejoq11977/Matriz---HPC.git && \
 cd Matriz---HPC && \
 bash experiments/bench.sh MaquinaB 500 1000 2000 4000 && \
-bash experiments/perfilar.sh
+bash experiments/perfilar.sh MaquinaB
 ```
 
 Después: copiar `experiments/resultados/benchmark/` y

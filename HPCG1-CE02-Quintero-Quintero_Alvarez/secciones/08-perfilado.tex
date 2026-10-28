@@ -43,6 +43,21 @@ Valgrind no venía instalado en el sistema, pero no hizo falta permiso de admini
 
 Para completar el eje de memoria con la medida del \emph{tamaño} del espacio de memoria utilizado (y no solo su eficiencia), se midió el \textbf{max RSS} (\textit{maximum resident set size}), que es la cantidad máxima de memoria física que el proceso tuvo residente simultáneamente. Se obtuvo con la llamada al sistema \texttt{getrusage(RUSAGE\_CHILDREN, ...)}, envuelta en un pequeño programa auxiliar (\texttt{experiments/maxrss.c}) que ejecuta la aplicación y reporta el pico de memoria del hijo. Esta medida no depende de ninguna herramienta externa.
 
+\subsection{El perfilado depende del hardware: por qué se mide en cada máquina}
+
+Un detalle metodológico importante condiciona todo el diseño del perfilado: \textbf{Cachegrind simula la jerarquía de caché real del equipo donde se ejecuta}. Lee los parámetros del procesador a través del \textit{CPUID} (tamaño de L1, de L2 y de L3, asociatividad, tamaño de línea) y reproduce ese comportamiento durante la ejecución.
+
+Esto se puede comprobar en la salida de la herramienta, que reporta explícitamente la caché que está simulando:
+
+\begin{verbatim}
+-- warning: L3 cache found, using its data for the LL simulation.
+-- warning: specified LL cache: line_size 64  assoc 8  total_size 12,582,912
+\end{verbatim}
+
+Los 12\,582\,912 bytes corresponden al L3 compartido de 12\,MiB del Intel Core i5-12450HX, es decir, la caché \emph{real} de la máquina usada.
+
+La consecuencia es que \textbf{la tasa de fallo de caché es un resultado dependiente del hardware}, no una propiedad intrínseca del algoritmo. Un kernel que funciona bien en una máquina con un L3 grande puede comportarse peor en otra con un L3 pequeño. Por eso el perfilado \textbf{se repite en cada una de las dos máquinas} del benchmark y los resultados se guardan separados por equipo, en las carpetas \texttt{experiments/resultados/perfilado/MaquinaA/} y \texttt{experiments/resultados/perfilado/MaquinaB/}.
+
 \subsection{Tamaño de N usado para el perfilado}
 
 Cachegrind simula la caché instrucción por instrucción, lo que lo hace entre 50 y 100 veces más lento que la ejecución nativa. Por eso el perfilado se hizo con $N = 500$ en lugar de $N = 4000$. Esta limitación es aceptable: la \emph{tasa} de fallo de caché es una propiedad del \emph{patrón de acceso}, y el patrón de acceso del kernel es el mismo para cualquier $N$ (solo cambia la cantidad de trabajo). Es más, se verificó que la tasa de fallo se mantiene estable entre $N = 500$ y $N = 1000$.

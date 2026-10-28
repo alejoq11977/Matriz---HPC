@@ -8,6 +8,16 @@ bin/
 # Se re-construyen solas con experiments/bootstrap_tools.sh
 .tools/
 
+# Auxiliares de LaTeX (el PDF si se compila queda commiteado)
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
 .DS_Store
 Thumbs.db
 

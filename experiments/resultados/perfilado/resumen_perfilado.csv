@@ -1,6 +1,6 @@
-variante,threads,I_refs,D_refs,D1_misses,D1_miss_rate_pct,D1_rate_read_pct,D1_rate_write_pct,LLd_misses,LLd_miss_rate_pct,max_rss_kb,max_rss_mb,funcion_mas_costera,pct_tiempo_gprof
-openmp,1,1034704330,389325981,59227926,15.2,22.8,0.0,48772,0.0,4544,4.4,reservar_matrices (no representativo con OpenMP),100.13
-openmp,16,1034768697,389344956,59231589,15.2,22.8,0.0,49382,0.0,4768,4.7,reservar_matrices (no representativo con OpenMP),100.13
-openmp,8,1062467457,393297061,59226557,15.1,22.5,0.0,49073,0.0,4656,4.5,reservar_matrices (no representativo con OpenMP),100.13
-secuencial,1,1031897709,389051874,58050493,14.9,22.4,0.0,48336,0.0,4456,4.4,multiplicar_y_medir,100.13
-transpuesto,1,907904738,389301885,7893064,2.0,3.0,0.0,48336,0.0,4372,4.3,multiplicar_y_medir_trans,100.13
+maquina,variante,threads,I_refs,D_refs,D1_misses,D1_miss_rate_pct,D1_rate_read_pct,D1_rate_write_pct,LLd_misses,LLd_miss_rate_pct,max_rss_kb,max_rss_mb,funcion_mas_costera,pct_tiempo_gprof
+MaquinaA,openmp,1,1034704330,389325981,59227926,15.2,22.8,0.0,48772,0.0,4544,4.4,reservar_matrices (no representativo con OpenMP),100.13
+MaquinaA,openmp,16,1034768697,389344956,59231589,15.2,22.8,0.0,49382,0.0,4768,4.7,reservar_matrices (no representativo con OpenMP),100.13
+MaquinaA,openmp,8,1062467457,393297061,59226557,15.1,22.5,0.0,49073,0.0,4656,4.5,reservar_matrices (no representativo con OpenMP),100.13
+MaquinaA,secuencial,1,1031897709,389051874,58050493,14.9,22.4,0.0,48336,0.0,4456,4.4,multiplicar_y_medir,100.13
+MaquinaA,transpuesto,1,907904738,389301885,7893064,2.0,3.0,0.0,48336,0.0,4372,4.3,multiplicar_y_medir_trans,100.13

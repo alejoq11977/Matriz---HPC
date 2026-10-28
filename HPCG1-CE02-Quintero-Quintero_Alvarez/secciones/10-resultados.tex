@@ -26,7 +26,7 @@ El 100\% del tiempo propio de la aplicación está en la función del kernel de 
 
 \subsection{Perfilado de memoria: el comportamiento de la caché}
 
-Esta es la medición más relevante del trabajo, porque cuantifica la hipótesis que el caso de estudio 1 dejó solo como intuición. La tabla~\ref{tab:cachegrind} muestra los contadores de Cachegrind para las tres variantes del kernel, con $N=500$.
+Esta es la medición más relevante del trabajo, porque cuantifica la hipótesis que el caso de estudio 1 dejó solo como intuición. La tabla~\ref{tab:cachegrind} muestra los contadores de Cachegrind para las tres variantes del kernel, con $N=500$, medidos en la \textbf{máquina A} (Intel Core i5-12450HX, L1d de 40\,KiB por núcleo con 8 vías, L3 compartido de 12\,MiB).
 
 \begin{table}[ht]
 \centering
@@ -42,7 +42,7 @@ OpenMP               & 8  & 1\,062\,467\,457 & 393\,297\,061 & 59\,226\,557 & 22
 OpenMP               & 16 & 1\,034\,768\,697 & 389\,344\,956 & 59\,231\,589 & 22.8\% & 49\,382 \\
 \hline
 \end{tabular}
-\caption{Métricas de caché medidas con Cachegrind ($N=500$). D1 miss rate corresponde a las lecturas de datos.}
+\caption{Métricas de caché medidas con Cachegrind ($N=500$) en la máquina A. D1 miss rate corresponde a las lecturas de datos.}
 \label{tab:cachegrind}
 \end{table}
 
@@ -159,7 +159,7 @@ Dos detalles merecen atención. Primero, el $T=16$ \emph{empeora} frente al $T=8
 
 \subsection{Comparación entre las dos máquinas}
 
-\textit{[Pendiente de completar con la segunda máquina. Se deja la tabla y la gráfica listas para ser rellenadas con los resultados del segundo equipo.]}
+\textit{[Pendiente de completar con la segunda máquina. Se deja la tabla y las gráficas listas para ser rellenadas con los resultados del segundo equipo.]}
 
 La máquina A, sobre la que se corrieron las mediciones de la tabla~\ref{tab:cinco-estrategias}, es:
 
@@ -211,4 +211,11 @@ Flags & \texttt{-Wall -O2 -fopenmp} \\
 \includegraphics[width=0.9\textwidth]{figuras/benchmark_tiempos.png}
 \caption{Tiempo absoluto del mejor $T$ en cada máquina (escala logarítmica).}
 \label{fig:benchmark-tiempos}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figuras/cache_miss_rate_maquinas.png}
+\caption{Tasa de fallo de caché L1 y fallos absolutos, comparando el kernel naive con el transpuesto en cada máquina. Como Cachegrind simula la caché real del equipo, estas cifras son distintas en cada hardware.}
+\label{fig:cache-maquinas}
 \end{figure}

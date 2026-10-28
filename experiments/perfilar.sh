@@ -11,27 +11,32 @@
 #   transpuesto : modules/tiempo_mult_trans.c (kernel transpuesto, B por fila)
 #   openmp      : modules/tiempo_mult_openmp.c (kernel con #pragma omp parallel for collapse(2))
 #
-# Salidas en experiments/resultados/perfilado/:
+# Salidas en experiments/resultados/perfilado/<maquina>/:
 #   gprof_<variante>.txt      reporte de GProf
-#   cachegrind_<variante>_<etiqueta>.out   datos crudos de Cachegrind
-#   cachegrind_<variante>_<etiqueta>.txt   resumen legible de Cachegrind
+#   cachegrind_<variante>_<T>.out   datos crudos de Cachegrind
+#   cachegrind_<variante>_<T>.txt   resumen legible de Cachegrind
 #   rss.csv                   footprint de memoria por variante
-#   resumen_perfilado.csv     tabla consolidada de todas las metricas
 #   hardware.txt              informacion del equipo
 #
+# El perfilado se separa por MAQUINA porque Cachegrind simula la jerarquia de
+# cache REAL del equipo donde corre (la lee del CPUID). Por eso las tasas de
+# fallo dependen del hardware y hay que medirlas en cada equipo por separado.
+#
 # Uso:
-#   bash experiments/perfilar.sh            # usa N=500 (default)
-#   N_PERFILADO=1000 bash experiments/perfilar.sh
+#   bash experiments/perfilar.sh              # maquina "MaquinaA" (default), N=500
+#   bash experiments/perfilar.sh MaquinaB     # otra maquina
+#   N_PERFILADO=1000 bash experiments/perfilar.sh MaquinaB
 
 set -e
 
 RAIZ=$(cd "$(dirname "$0")/.." && pwd)
 cd "$RAIZ"
 
+ETIQUETA=${1:-MaquinaA}
 N_PERFILADO=${N_PERFILADO:-500}
 VALOR_MAX=${VALOR_MAX:-9}
 SEMILLA=${SEMILLA:-42}
-SALIDA="$RAIZ/experiments/resultados/perfilado"
+SALIDA="$RAIZ/experiments/resultados/perfilado/$ETIQUETA"
 BIN="$RAIZ/bin/perfilado"
 TOOLS="$RAIZ/.tools"
 
@@ -56,6 +61,7 @@ fi
 echo "================================================================"
 echo "PERFILADO DE LA APLICACION (CPU con GProf, memoria con Cachegrind)"
 echo "================================================================"
+echo "Maquina   : $ETIQUETA"
 echo "N = $N_PERFILADO   valor_max = $VALOR_MAX   semilla = $SEMILLA"
 echo "valgrind : ${VG:-NO DISPONIBLE}"
 echo "time -v  : ${TIME_V:-NO DISPONIBLE}"
@@ -149,7 +155,7 @@ echo ""
 echo "[5/5] Consolidando resultados..."
 {
     echo "=============================================="
-    echo "INFORMACION DEL EQUIPO"
+    echo "INFORMACION DEL EQUIPO - $ETIQUETA"
     echo "=============================================="
     echo "Fecha: $(date)"
     echo "Hostname: $(hostname)"
@@ -161,23 +167,29 @@ echo "[5/5] Consolidando resultados..."
     lscpu 2>/dev/null | grep -E "^(Architecture|CPU\(s\)|On-line|Model name|Thread|Core|Socket|CPU max|CPU min|L1d|L1i|L2|L3|Vendor)" || true
     echo ""
     echo "--- Memoria ---"
-    free -h
+    free -h | head -2
     echo ""
     echo "--- Compilador ---"
     ${CC:-gcc} --version | head -1
 } > "$SALIDA/hardware.txt"
 
-# --- Tabla consolidada ---
+# --- Tabla consolidada (de todas las maquinas) ---
 python3 experiments/plot_perfilado.py
 
 echo ""
 echo "=============================================="
-echo "PERFILADO COMPLETO"
+echo "PERFILADO COMPLETO - $ETIQUETA"
 echo "=============================================="
-echo "Resultados en: experiments/resultados/perfilado/"
-echo "  - resumen_perfilado.csv    tabla consolidada"
-echo "  - gprof_*.txt              reportes de CPU (GProf)"
-echo "  - cachegrind_*.txt        metricas de cache (memoria)"
-echo "  - rss.csv                  footprint de memoria"
-echo "  - hardware.txt             info del equipo"
+echo "Resultados de esta maquina en:"
+echo "  experiments/resultados/perfilado/$ETIQUETA/"
+echo "    - gprof_*.txt              reportes de CPU (GProf)"
+echo "    - cachegrind_*.txt        metricas de cache (memoria)"
+echo "    - rss.csv                  footprint de memoria"
+echo "    - hardware.txt             info del equipo"
+echo ""
+echo "Tablas y graficas consolidadas (de todas las maquinas):"
+echo "  experiments/resultados/perfilado/resumen_perfilado.csv"
+echo "  experiments/resultados/perfilado/cache_miss_rate.png"
+echo "  experiments/resultados/perfilado/cache_miss_rate_maquinas.png"
+echo "  experiments/resultados/perfilado/footprint_memoria.png"
 echo "=============================================="

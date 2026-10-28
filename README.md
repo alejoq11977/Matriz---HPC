@@ -146,9 +146,11 @@ El enunciado pide además la "caracterización (perfilado) de la aplicación mí
 Para correr el perfilado:
 
 ```bash
-bash experiments/perfilar.sh            # ~5 min
-N_PERFILADO=1000 bash experiments/perfilar.sh   # más lento, más datos
+bash experiments/perfilar.sh MaquinaA                          # ~5 min
+N_PERFILADO=1000 bash experiments/perfilar.sh MaquinaA        # más lento, más datos
 ```
+
+**El perfilado se separa por máquina** (`experiments/resultados/perfilado/<etiqueta>/`) porque **Cachegrind simula la jerarquía de caché real del equipo donde corre** (la lee del CPUID). Por eso las tasas de fallo son un resultado dependiente del hardware y hay que medirlas en cada equipo por separado.
 
 `perf` y `valgrind` no venían instalados en el sistema. `experiments/bootstrap_tools.sh` los baja **sin sudo** (con `apt-get download` + `dpkg-deb -x`) y los deja en `.tools/`, que está en `.gitignore`.
 
@@ -161,8 +163,13 @@ El enunciado pide "medir el rendimiento en dos máquinas diferentes (Benchmark)"
 bash experiments/bench.sh MaquinaA 500 1000 2000 4000
 bash experiments/bench.sh MaquinaB 500 1000 2000 4000
 
+# Perfilado en cada máquina (recomendado: el miss rate depende del hardware)
+bash experiments/perfilar.sh MaquinaA
+bash experiments/perfilar.sh MaquinaB
+
 # Después, en la máquina principal, consolidar:
 python3 experiments/plot_benchmark.py
+python3 experiments/plot_perfilado.py
 ```
 
 La guía completa para el segundo equipo (requisitos, checklist de preparación, qué copiar de vuelta) está en **`experiments/REPRODUCIR_OTRA_MAQUINA.md`**.
@@ -205,7 +212,7 @@ El nombre de la carpeta y del PDF final hay que ajustarlo con los nombres reales
 | `experiments/resultados/caso_de_estudio_2.png` | Gráfica de las 4 estrategias |
 | `experiments/resultados/caso_de_estudio_2_openmp.csv` | Tabla comparativa de speedups (5 estrategias) |
 | `experiments/resultados/caso_de_estudio_2_openmp.png` | Gráfica de las 5 estrategias |
-| `experiments/resultados/perfilado/` | Reportes de GProf, métricas de Cachegrind, RSS y sus gráficas |
+| `experiments/resultados/perfilado/<maquina>/` | Perfilado de cada equipo: GProf, Cachegrind, RSS y hardware |
 | `experiments/resultados/benchmark/` | Corridas crudas, hardware y tablas comparativas por máquina |
 | `experiments/resultados/medir_log.txt` | Log de la corrida de medición |
 | `HPCG1-CE02-Quintero-Quintero_Alvarez/` | Documento LaTeX completo de la entrega |
@@ -218,9 +225,10 @@ bash experiments/medir_optimizaciones.sh 500 1000 2000 4000 10 mm_full matriz_mo
 python3 experiments/plot_caso2.py
 bash experiments/medir_openmp.sh                # valida + barre T=1,2,4,8,16 x N=500,1000,2000,4000 x 10 iter (~30 min)
 python3 experiments/plot_caso2_openmp.py
-bash experiments/perfilar.sh                    # perfilado CPU + memoria
+bash experiments/perfilar.sh MaquinaA          # perfilado CPU + memoria
 bash experiments/bench.sh MaquinaA 500 1000 2000 4000   # benchmark (en cada máquina)
 python3 experiments/plot_benchmark.py
+python3 experiments/plot_perfilado.py
 ```
 
 Para un smoke test rápido (1 sola iteración por cada T×N, omite N=4000 para no demorar — valida todo el pipeline y al final borra los artefactos automáticamente):
