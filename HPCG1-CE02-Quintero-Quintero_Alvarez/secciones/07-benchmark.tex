@@ -1,0 +1,59 @@
+\section{Benchmark: protocolo y marco de comparación}
+
+\subsection{Qué se mide y por qué el kernel}
+
+La consigna pide medir el rendimiento de la aplicación en dos máquinas diferentes. Como se explicó en la sección 3, un benchmark debe generar una carga \emph{representativa}. En este trabajo la carga representativa es \textbf{el kernel de la multiplicación de matrices}, por dos razones:
+
+\begin{enumerate}
+    \item Es lo que consume la mayor parte del tiempo de ejecución del programa (el 100\% del tiempo propio según el perfil de GProf, sección 8), por lo que es el componente que determina el comportamiento del hardware.
+    \item Es el componente \emph{reproducible}: dada la misma semilla, genera exactamente los mismos datos en cualquier equipo, lo que hace comparables las mediciones entre máquinas.
+\end{enumerate}
+
+Las otras fases del programa (reservar memoria, llenar las matrices con números aleatorios, imprimir) quedan fuera del cronometrado, de la misma manera que en el caso de estudio 1.
+
+\subsection{Qué se compara entre las dos máquinas}
+
+Para cada máquina se mide:
+
+\begin{itemize}
+    \item El \textbf{tiempo de ejecución} del kernel con OpenMP, con el mismo barrido de parámetros: $T \in \{1, 2, 4, 8, 16\}$ y $N \in \{500, 1000, 2000, 4000\}$, 10 repeticiones por combinación.
+    \item El \textbf{speedup interno} de cada máquina: $S = T_{T=1} / T_{T}$, es decir, cuánto acelera su propio paralelismo.
+    \item La \textbf{diferencia porcentual de rendimiento} entre máquinas, con la fórmula de la sección 3:
+    \begin{equation}
+    \%\Delta = \frac{R_x - R_y}{R_y} \times 100, \qquad R = \frac{1}{T}
+    \end{equation}
+\end{itemize}
+
+El \textbf{speedup interno} es la métrica más informativa para comparar máquinas, porque es \emph{independiente de la velocidad bruta del equipo}: mide cuánto paralelismo es capaz de extraer cada hardware. Un equipo más lento puede tener mejor speedup si su memoria es más rápida o si tiene menos núcleos que disputan la caché.
+
+\subsection{El protocolo para garantizar comparabilidad}
+
+Un benchmark entre máquinas solo es válido si las condiciones son equivalentes. El protocolo que se siguió en ambas máquinas:
+
+\begin{itemize}
+    \item \textbf{Mismo código fuente}: la misma rama del repositorio, verificada con el mismo hash de commit.
+    \item \textbf{Mismos flags de compilación}: \texttt{-Wall -O2 -fopenmp} en ambos equipos, y el mismo compilador cuando es posible (\texttt{gcc}).
+    \item \textbf{Mismos datos}: semilla 42 y valor máximo 9 en todas las corridas, por lo que las matrices son idénticas bit a bit.
+    \item \textbf{Misma methodology de repetición}: 10 corridas por configuración, intercalando los tamaños de matriz (ver sección 5) y usando la mediana.
+    \item \textbf{Mismo estado del equipo}: sin otras cargas, con el equipo conectado a la corriente (para que el procesador no baje su frecuencia) y con la temperatura estable.
+\end{itemize}
+
+\subsection{Qué se captura del hardware}
+
+Para poder interpretar los resultados, de cada equipo se registra automáticamente la información relevante:
+
+\begin{center}
+\begin{tabular}{|l|p{9cm}|}
+\hline
+\textbf{Dato} & \textbf{Para qué sirve} \\
+\hline
+Modelo de CPU y familia & Determina el conjunto de instrucciones y el rendimiento por ciclo \\
+Núcleos físicos y lógicos & Explica el techo de paralelismo y la capacidad de la caché compartida \\
+Jerarquía de caché (L1d, L2, L3) & Explica el comportamiento de la caché del kernel \\
+Frecuencia máxima y mínima & Explica la variabilidad del rendimiento \\
+Memoria RAM & Limita el $N$ máximo y el comportamiento del ancho de banda de memoria \\
+Kernel y distribución & Explica diferencias en el comportamiento del sistema \\
+Versión del compilador & Explica diferencias en el código generado \\
+\hline
+\end{tabular}
+\end{center}

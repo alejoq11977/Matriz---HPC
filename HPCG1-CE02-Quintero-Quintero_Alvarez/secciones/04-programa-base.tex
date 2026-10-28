@@ -1,0 +1,53 @@
+\section{El programa base (versión secuencial)}
+
+\subsection{Qué hace el programa}
+
+El programa toma dos matrices cuadradas $A$ y $B$ de tamaño $N \times N$ y calcula la matriz producto $C = A \times B$ con el algoritmo clásico. Cada elemento se calcula como:
+
+\[
+C[i][j] = \sum_{k=0}^{N-1} A[i][k] \cdot B[k][j]
+\]
+
+Hay $N^2$ elementos a producir y cada uno requiere $N$ multiplicaciones y $N-1$ sumas, así que la complejidad es $O(N^3)$. Para $N = 1000$ son $10^9$ operaciones; para $N = 4000$, $6.4 \times 10^{10}$.
+
+\subsection{El algoritmo en código}
+
+El bucle que después se paraleliza en todas las versiones es un triple bucle anidado:
+
+\begin{verbatim}
+for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++)
+        for (int k = 0; k < N; k++)
+            C[i*N + j] +=
+                A[i*N + k] *
+                B[k*N + j];
+\end{verbatim}
+
+Los índices \texttt{i*N + k} y \texttt{k*N + j} convierten el índice bidimensional \texttt{[i][k]} en uno unidimensional \texttt{[i*N+k]}, porque las matrices se almacenan en un bloque contiguo de memoria (allocado con \texttt{malloc}), no como arreglos bidimensionales de C.
+
+\subsection{El patrón de acceso a memoria}
+
+Este es el detalle que resultará central en el análisis, así que conviene hacerlo explícito desde el inicio. En el bucle interior, con $i$ y $j$ fijos, el índice \texttt{k} recorre:
+
+\begin{itemize}
+    \item $A[i \cdot N + k]$: acceso \textbf{contiguo}. Al avanzar $k$, la dirección avanza de a un entero. La fila $i$ de $A$ se recorre secuencialmente.
+    \item $B[k \cdot N + j]$: acceso \textbf{con salto}. Al avanzar $k$, la dirección avanza $N$ enteros. La columna $j$ de $B$ se recorre \emph{a saltos}, y cada salto de $N$ enteros cae normalmente en una línea de caché diferente.
+    \item $C[i \cdot N + j]$: acceso \textbf{constante}. Todos los $k$ escriben en la misma celda, que queda en un registro.
+\end{itemize}
+
+Es decir: la mitad del trabajo de la multiplicación (la lectura de $B$) accede a la memoria en un orden que no corresponde al orden en que los datos están almacenados. Este patrón es el que se mide en la sección 8 con Cachegrind y el que explica, en la sección 11, por qué la transposición de $B$ produce una ganancia tan grande sin necesidad de paralelizar.
+
+\subsection{Estructura modular del código}
+
+El proyecto está organizado en módulos, de manera que el kernel de multiplicación (que es lo que cambia entre versiones) está aislado del resto:
+
+\begin{itemize}
+    \item \texttt{modules/memoria.c}: reserva memoria para las tres matrices con \texttt{malloc} y verifica que la reserva haya sido exitosa.
+    \item \texttt{modules/llenado.c}: llena $A$ y $B$ con valores aleatorios usando \texttt{srand}/\texttt{rand} y pone $C$ en cero.
+    \item \texttt{modules/tiempo\_mult.c}: contiene la función \texttt{multiplicar\_y\_medir} que ejecuta el triple bucle secuencial y mide el tiempo con \texttt{clock\_gettime}.
+    \item \texttt{modules/tiempo\_mult\_trans.c}: variante con $B$ transpuesta, que accede a $B$ por fila.
+    \item \texttt{modules/tiempo\_mult\_openmp.c}: variante con la directiva \texttt{\#pragma omp parallel for collapse(2)}, que es la implementación de este caso de estudio.
+    \item \texttt{src/matriz\_monotonic\_openmp.c}: programa principal que usa el kernel con OpenMP.
+\end{itemize}
+
+El \textit{headers} correspondientes viven en \texttt{include/}. Esta separación permite medir el \emph{kernel} de forma aislada, que es lo que interesa para el perfilado.

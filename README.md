@@ -131,6 +131,54 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 
 - **Lección metodológica**: comparar estrategias de paralelización exige que todas usen el mismo nivel de optimización del compilador. La primera corrida de este caso de estudio usó `-O0` para OpenMP mientras el `T_seq` usaba `-O2`, lo cual mezcla dos efectos distintos (paralelización + flags de compilación) y llevó a conclusiones erróneas sobre el rendimiento de OpenMP.
 
+## Perfilado de la aplicación
+
+El enunciado pide además la "caracterización (perfilado) de la aplicación mínimo para memoria y CPU". Se implementó con dos herramientas que cubren ambos ejes:
+
+| Eje | Herramienta | Qué mide |
+|---|---|---|
+| **CPU** | **GProf** (`-pg` + `gprof bin gmon.out`) | Tiempo propio por función. El 100% del tiempo está en `multiplicar_y_medir`. |
+| **Memoria** | **Cachegrind** (Valgrind, `--cache-sim=yes`) | I refs, D refs, D1 misses, D1 miss rate, LL misses |
+| **Memoria** | **`getrusage`** (vía `experiments/maxrss.c`) | Memoria máxima residente (max RSS) |
+
+**Hallazgo central**: la transposición de `B` reduce la tasa de fallo de caché L1 en lecturas de **22.4% a 3.0%** (7.4× menos fallos absolutos). Y el miss rate **no depende del número de hilos** (22.8% / 22.5% / 22.8% para T=1/8/16): es una propiedad del patrón de acceso, no del paralelismo. Esto convierte en evidencia experimental la conclusión de que el cuello de botella del problema es la memoria.
+
+Para correr el perfilado:
+
+```bash
+bash experiments/perfilar.sh            # ~5 min
+N_PERFILADO=1000 bash experiments/perfilar.sh   # más lento, más datos
+```
+
+`perf` y `valgrind` no venían instalados en el sistema. `experiments/bootstrap_tools.sh` los baja **sin sudo** (con `apt-get download` + `dpkg-deb -x`) y los deja en `.tools/`, que está en `.gitignore`.
+
+## Benchmark entre dos máquinas
+
+El enunciado pide "medir el rendimiento en dos máquinas diferentes (Benchmark)" y "mostrar los resultados en documento en ambas máquinas". `experiments/bench.sh` es un script **portable** que corre en cualquier equipo con Linux, captura automáticamente el hardware y produce las corridas crudas.
+
+```bash
+# En cada máquina (con la misma rama)
+bash experiments/bench.sh MaquinaA 500 1000 2000 4000
+bash experiments/bench.sh MaquinaB 500 1000 2000 4000
+
+# Después, en la máquina principal, consolidar:
+python3 experiments/plot_benchmark.py
+```
+
+La guía completa para el segundo equipo (requisitos, checklist de preparación, qué copiar de vuelta) está en **`experiments/REPRODUCIR_OTRA_MAQUINA.md`**.
+
+Como la aplicación trabaja con **enteros**, no se puede reportar en FLOPS (el propio profesor lo señaló: *"en el caso de nosotros que estamos utilizando multiplicación de matrices con enteros, pues no podemos utilizar una unidad de medida de flops"*). La comparación se hace con tiempos, speedup y la diferencia porcentual de rendimiento: $\%\Delta = (R_x - R_y)/R_y \times 100$ con $R = 1/T$.
+
+## Documento de la entrega
+
+El documento LaTeX del caso de estudio 2 está en **`HPCG1-CE02-Quintero-Quintero_Alvarez/`** (29 páginas compiladas). Es autocontenido: incluye el marco teórico de OpenMP, benchmark y profiling, la justificación de las directivas elegidas citando los ejemplos 3.1, 3.8 y 5.3.5 del PDF oficial, los resultados del perfilado, los de desempeño en ambas máquinas, el análisis y las conclusiones.
+
+```bash
+cd HPCG1-CE02-Quintero-Quintero_Alvarez && ./compilar.sh
+```
+
+El nombre de la carpeta y del PDF final hay que ajustarlo con los nombres reales de los integrantes (el profe pidió el formato `HPCG1-CE02-Nombre1-Nombre2_Nombre3`).
+
 ## Archivos generados
 
 | Archivo | Descripción |
@@ -143,6 +191,13 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 | `experiments/medir_openmp.sh` | Compila el binario OpenMP, valida contra `verify_ref` y mide el barrido completo (5 T × 4 Ns × 10 iter = 200 corridas) |
 | `experiments/plot_caso2.py` | Genera la tabla CSV y la gráfica PNG de las 4 estrategias |
 | `experiments/plot_caso2_openmp.py` | Genera la tabla CSV y la gráfica PNG de las 5 estrategias (incluye OpenMP) |
+| `experiments/bootstrap_tools.sh` | Prepara valgrind y `time` localmente, sin sudo |
+| `experiments/perfilar.sh` | Perfilado completo: GProf (CPU) + Cachegrind + max RSS (memoria) |
+| `experiments/bench.sh` | Benchmark portable: hardware del equipo + barrido completo de OpenMP |
+| `experiments/plot_perfilado.py` | Consolida el perfilado y genera las gráficas de caché y memoria |
+| `experiments/plot_benchmark.py` | Consolida las máquinas y genera la comparación de rendimiento |
+| `experiments/maxrss.c` | Helper que mide la memoria máxima residente del proceso hijo |
+| `experiments/REPRODUCIR_OTRA_MAQUINA.md` | Guía paso a paso para ejecutar el benchmark en el segundo equipo |
 | `experiments/resultados/med_mm_full_raw.csv` | 10 corridas de `mm_full` (N=500,1000,2000,4000) |
 | `experiments/resultados/med_matriz_monotonic_t_raw.csv` | 10 corridas de `matriz_monotonic_t` (mismos N) |
 | `experiments/resultados/med_openmp_raw.csv` | 200 corridas de `matriz_openmp_O2` (5 T × 4 Ns × 10 iter), header `N,T,run,tiempo` |
@@ -150,7 +205,10 @@ Comparativa de las **5 estrategias** incluyendo OpenMP (esta rama):
 | `experiments/resultados/caso_de_estudio_2.png` | Gráfica de las 4 estrategias |
 | `experiments/resultados/caso_de_estudio_2_openmp.csv` | Tabla comparativa de speedups (5 estrategias) |
 | `experiments/resultados/caso_de_estudio_2_openmp.png` | Gráfica de las 5 estrategias |
+| `experiments/resultados/perfilado/` | Reportes de GProf, métricas de Cachegrind, RSS y sus gráficas |
+| `experiments/resultados/benchmark/` | Corridas crudas, hardware y tablas comparativas por máquina |
 | `experiments/resultados/medir_log.txt` | Log de la corrida de medición |
+| `HPCG1-CE02-Quintero-Quintero_Alvarez/` | Documento LaTeX completo de la entrega |
 
 ## Cómo reproducir
 
@@ -160,6 +218,9 @@ bash experiments/medir_optimizaciones.sh 500 1000 2000 4000 10 mm_full matriz_mo
 python3 experiments/plot_caso2.py
 bash experiments/medir_openmp.sh                # valida + barre T=1,2,4,8,16 x N=500,1000,2000,4000 x 10 iter (~30 min)
 python3 experiments/plot_caso2_openmp.py
+bash experiments/perfilar.sh                    # perfilado CPU + memoria
+bash experiments/bench.sh MaquinaA 500 1000 2000 4000   # benchmark (en cada máquina)
+python3 experiments/plot_benchmark.py
 ```
 
 Para un smoke test rápido (1 sola iteración por cada T×N, omite N=4000 para no demorar — valida todo el pipeline y al final borra los artefactos automáticamente):

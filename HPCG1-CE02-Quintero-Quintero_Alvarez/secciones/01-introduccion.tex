@@ -1,0 +1,14 @@
+\section{Introducción}
+
+Este documento presenta el trabajo realizado sobre el caso de estudio 2 de la materia de Computación de Alto Rendimiento (HPC). La consigna de la actividad pide tres cosas: implementar \textbf{concurrencia mediante OpenMP} sobre la aplicación de multiplicación de matrices, realizar la \textbf{caracterización (perfilado) mínimo de la aplicación} en CPU y memoria, y \textbf{medir el rendimiento en dos máquinas diferentes} (benchmark), mostrando los resultados de ambas máquinas en el documento.
+
+El trabajo parte del programa secuencial de multiplicación de matrices ya estudiado en el caso de estudio 1, donde se implementaron versiones paralelas con \textbf{POSIX Threads} y con \textbf{procesos \texttt{fork()}} usando memoria compartida POSIX. Ese caso de estudio quedó además acompañado con una comparación de \textit{optimizaciones}: flags de compilación agresivos (\texttt{-O3 -march=native -floop-interchange -funroll-loops -floop-nest-optimize}) y un kernel transpuesto que cambia el patrón de acceso a la matriz $B$ para aprovechar mejor la caché.
+
+En este caso de estudio 2 se cierra el círculo. La pregunta central que responde el trabajo es: \textbf{¿qué aporta una API de paralelización de alto nivel como OpenMP frente a la paralelización manual con hilos?}, y para responderla con evidencia y no solo con intuición se añaden dos instrumentos que el caso de estudio 1 no tenía:
+
+\begin{itemize}
+    \item El \textbf{perfilado}, que permite observar \textit{dónde} se va el tiempo y \textit{por qué} una versión es más rápida que otra. En particular, permite medir la tasa de fallos de caché (\textit{cache miss rate}) de cada versión del kernel, que es la variable que explica el comportamiento observado en el caso de estudio 1.
+    \item El \textbf{benchmark entre máquinas}, que permite poner el mismo código en hardware diferente y observar cuánto de la ganancia depende del algoritmo y cuánto depende del equipo.
+\end{itemize}
+
+El resto del documento está organizado así: la sección 2 enumera los objetivos; la sección 3 presenta los conceptos teóricos mínimos (OpenMP, benchmark, perfilado, métricas de rendimiento); la sección 4 describe el programa base secuencial; la sección 5 explica la metodología de medición de tiempo; la sección 6 describe la implementación con OpenMP y la justificación de las directivas elegidas; la sección 7 introduce el marco teórico del benchmark y del perfilado; la sección 8 muestra los resultados del perfilado; la sección 9 explica el diseño experimental; la sección 10 presenta los resultados de desempeño en ambas máquinas; la sección 11 los analiza; y la sección 12 cierra con las conclusiones.

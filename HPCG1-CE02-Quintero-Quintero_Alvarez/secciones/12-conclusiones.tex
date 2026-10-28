@@ -1,0 +1,43 @@
+\section{Conclusiones}
+
+\subsection{Logros del trabajo}
+
+Se cumplieron los tres objetivos de la consigna. Primero, se implementó la concurrencia mediante \textbf{OpenMP} partiendo de la versión secuencial inicial, con la directiva \texttt{\#pragma omp parallel for collapse(2)} elegida de forma justificada a partir de los ejemplos de la especificación oficial, y con una validación de correctitud automática contra una implementación de referencia antes de cada medición. Segundo, se realizó la \textbf{caracterización (perfilado) mínimo de la aplicación} en los dos ejes pedidos: CPU con GProf y memoria con Cachegrind más \texttt{getrusage}. Tercero, se implementó un \textbf{benchmark reproducible} que permite comparar el rendimiento en dos máquinas Linux distintas, con un script portable y la captura automática de la descripción del hardware de cada equipo.
+
+\subsection{Hallazgos principales}
+
+\begin{enumerate}
+    \item \textbf{El perfilado cuántifica lo que el caso de estudio 1 solo sospechaba}. La transposición de $B$ reduce la tasa de fallo de caché L1 en lecturas de 22.4\% a 3.0\% (7.4 veces menos fallos absolutos). La hipótesis de que el cuello de botella era la memoria queda respaldada por medición directa, no solo por intuición.
+
+    \item \textbf{La tasa de fallo de caché no depende del número de hilos}. OpenMP con $T=1$, $T=8$ y $T=16$ arroja 22.8\%, 22.5\% y 22.8\% respectivamente. Esto aísla limpiamente la causa: el paralelismo no empeora el acceso a la memoria (el patrón es el mismo), pero tampoco lo arregla.
+
+    \item \textbf{OpenMP es la estrategia más rápida de las cinco} en tres de los cuatro tamaños evaluados, con 4.54$\times$ en $N=4000$, superando al kernel transpuesto (3.55$\times$) y a la paralelización manual con pthreads (3.11$\times$). La explicación de por qué no supera al transpuesto está en el hallazgo anterior: paralelizar multiplica la demanda sobre una caché que ya estaba saturada.
+
+    \item \textbf{El speedup crece con el tamaño del problema}, como corresponde a un comportamiento de paralelización sano: con problemas chicos el \emph{overhead} domina; con problemas grandes el cómputo lo amortiza.
+
+    \item \textbf{El escalamiento se satura y luego decrece}: con 12 núcleos lógicos, $T=16$ es peor que $T=8$ para $N=4000$. El número de hilos debe ajustarse a la capacidad real del equipo.
+
+    \item \textbf{Comparar estrategias exige igualar las condiciones de compilación}. La medición inicial con \texttt{-O0} para OpenMP y \texttt{-O2} para el resto llevó a la conclusión errónea de que OpenMP era la peor estrategia. Es un error metodológico, no de implementación, y el caso de estudio es una buena ilustración de por qué importa.
+
+    \item \textbf{La granularidad del reparto y la localidad de datos interactúan}. El reparto fino de \texttt{collapse(2)} da mejor balance de carga pero peor localidad que el reparto manual por bloques de filas; en un problema limitado por la memoria, la localidad pesa más.
+\end{enumerate}
+
+\subsection{Limitaciones}
+
+\begin{itemize}
+    \item El perfilado con Cachegrind se ejecutó con $N=500$ (y verificado estable hasta $N=1000$), porque la simulación de caché es entre 50 y 100 veces más lenta que la ejecución nativa. La tasa de fallo es una propiedad del patrón de acceso y no debería variar con $N$, pero no se verificó para los tamaños mayores.
+    \item GProf no es concluyente para la variante con OpenMP: solo instrumenta el hilo principal, por lo que el reparto de tiempo dentro de la región paralela no se puede atribuir con esta herramienta. Haría falta una herramienta de muestreo por hardware como \texttt{perf}, que no estaba disponible en el sistema.
+    \item La matriz $C$ se acumula en enteros de 32 bits. Con $N=4000$ y valores hasta 9, el máximo es $9 \times 4000 = 36000$, que no desborda, pero el margen es menor que en el caso de $N=1000$. Con valores o tamaños mayores habría que usar enteros más anchos o coma flotante.
+    \item El footprint de memoria medido con \texttt{getrusage} no distingue el uso de memoria del proceso del de sus hilos, ni captura las asignaciones internas del \textit{runtime} de OpenMP.
+    \item La comparación entre máquinas se realizó con el mismo compilador y los mismos flags, pero no se pudo controlar la versión del \textit{firmware}, la configuración de la BIOS ni el estado térmico de los equipos. Estos factores pueden introducir diferencias de varios puntos porcentuales.
+\end{itemize}
+
+\subsection{Trabajo futuro}
+
+\begin{itemize}
+    \item \textbf{Combinar las dos optimizaciones}: aplicar la directiva de OpenMP sobre el kernel \emph{transpuesto}. Los dos speedups se multiplicarían parcialmente (la transposición reduce la demanda de caché, el paralelismo reparte el trabajo restante), y es la hipótesis más interesante que queda abierta.
+    \item \textbf{Reparto por bloques en la versión con OpenMP}: usar \texttt{collapse(2)} solo sobre el loop $j$ y particionar $i$ por bloques en el nivel externo, para recuperar la localidad que la versión manual tenía.
+    \item \textbf{Usar \texttt{perf}} para el perfilado de hardware con contadores reales, lo que permitiría medir el miss rate real (y no simulado) y el comportamiento de la caché compartida bajo concurrencia.
+    \item \textbf{Explorar la variante con \texttt{schedule(static, chunk)}} y otras políticas de reparto, que permitirían ajustar el equilibrio entre balance de carga y localidad.
+    \item \textbf{Repetir el benchmark con más de dos máquinas} para construir una caracterización del comportamiento del kernel en función de las características del hardware (núcleos, jerarquía de caché, ancho de banda de memoria).
+\end{itemize}

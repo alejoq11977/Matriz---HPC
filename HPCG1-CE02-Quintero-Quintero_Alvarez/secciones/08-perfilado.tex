@@ -1,0 +1,48 @@
+\section{Perfilado de la aplicación}
+
+\subsection{Objetivo del perfilado}
+
+El perfilado responde una pregunta distinta a la del benchmark. El benchmark mide \emph{cuánto}; el perfilado busca \textbf{explicar por qué}. Concretamente, en este trabajo se busca:
+
+\begin{enumerate}
+    \item Identificar \textbf{dónde se va el tiempo de CPU} de la aplicación (perfilado de CPU).
+    \item Identificar \textbf{cuánta presión sobre la memoria} genera el kernel y si el acceso a la caché es eficiente (perfilado de memoria).
+    \item Explicar el \textbf{escalamiento} observado: por qué el speedup con OpenMP es alto pero no se acerca al ideal, y por qué la transposición de $B$ produce una ganancia mayor que la paralelización.
+\end{enumerate}
+
+\subsection{Perfilado de CPU con GProf}
+
+GProf es un perfilador por \textbf{muestreo} que se integra con el compilador. El procedimiento, tal como lo presentó el profesor, tiene tres pasos:
+
+\begin{enumerate}
+    \item \textbf{Compilar con instrumentación}: la bandera \texttt{-pg} le indica al compilador que inserte llamadas a funciones de conteo en el programa.
+    \item \textbf{Ejecutar}: el programa instrumentado corre normalmente y al terminar escribe un archivo \texttt{gmon.out} con los contadores recolectados.
+    \item \textbf{Generar el reporte}: \texttt{gprof binario gmon.out} convierte ese archivo binario en un reporte legible en texto plano.
+\end{enumerate}
+
+El reporte contiene el \emph{flat profile}, donde cada función aparece con el porcentaje de tiempo propio, los segundos acumulados, el número de llamadas y el tiempo medio por llamada.
+
+Se aplicó a las tres variantes del kernel: secuencial, transpuesta y con OpenMP. Hay una \textbf{limitación importante con OpenMP}: GProf solo instrumenta el hilo principal, de modo que el tiempo de la región paralela se contabiliza de forma engañosa (aparece atribuido a la función que la contiene y no a la función de trabajo real). Por eso el reporte de GProf es concluyente para las variantes secuenciales y se reporta con la advertencia explícita para la variante con OpenMP.
+
+\subsection{Perfilado de memoria con Cachegrind}
+
+Para el eje de memoria se usó \textbf{Cachegrind}, la herramienta de simulación de caché que forma parte de Valgrind. Cachegrind reproduce el comportamiento de una jerarquía de caché durante la ejecución y reporta, para el programa completo y para cada función:
+
+\begin{itemize}
+    \item \textbf{Instrucciones ejecutadas} (\textit{I refs}).
+    \item \textbf{Referencias a datos} (\textit{D refs}), separadas en lecturas y escrituras.
+    \item \textbf{Fallos de caché} (\textit{misses}) en L1 de datos (\textit{D1}) y en el último nivel (\textit{LL}).
+    \item \textbf{Tasa de fallo} (\textit{miss rate}) de lectura y de escritura.
+\end{itemize}
+
+Para activar la simulación de caché hay que pasar la opción \texttt{--cache-sim=yes}; sin ella Cachegrind solo reporta el conteo de instrucciones.
+
+Valgrind no venía instalado en el sistema, pero no hizo falta permiso de administrador: el script \texttt{experiments/bootstrap\_tools.sh} descarga el paquete con \texttt{apt-get download} (que no requiere \texttt{sudo}) y lo extrae con \texttt{dpkg-deb -x} en una carpeta local del proyecto, ajustando la variable \texttt{VALGRIND\_LIB} para que encuentre sus archivos de soporte.
+
+\subsection{Footprint de memoria con \texttt{getrusage}}
+
+Para completar el eje de memoria con la medida del \emph{tamaño} del espacio de memoria utilizado (y no solo su eficiencia), se midió el \textbf{max RSS} (\textit{maximum resident set size}), que es la cantidad máxima de memoria física que el proceso tuvo residente simultáneamente. Se obtuvo con la llamada al sistema \texttt{getrusage(RUSAGE\_CHILDREN, ...)}, envuelta en un pequeño programa auxiliar (\texttt{experiments/maxrss.c}) que ejecuta la aplicación y reporta el pico de memoria del hijo. Esta medida no depende de ninguna herramienta externa.
+
+\subsection{Tamaño de N usado para el perfilado}
+
+Cachegrind simula la caché instrucción por instrucción, lo que lo hace entre 50 y 100 veces más lento que la ejecución nativa. Por eso el perfilado se hizo con $N = 500$ en lugar de $N = 4000$. Esta limitación es aceptable: la \emph{tasa} de fallo de caché es una propiedad del \emph{patrón de acceso}, y el patrón de acceso del kernel es el mismo para cualquier $N$ (solo cambia la cantidad de trabajo). Es más, se verificó que la tasa de fallo se mantiene estable entre $N = 500$ y $N = 1000$.

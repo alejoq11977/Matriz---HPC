@@ -4,6 +4,10 @@ bin/
 *.so
 *.exe
 
+# Herramientas de perfilado descargadas localmente (valgrind, time).
+# Se re-construyen solas con experiments/bootstrap_tools.sh
+.tools/
+
 .DS_Store
 Thumbs.db
 

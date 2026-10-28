@@ -1,0 +1,55 @@
+\section{Análisis de resultados}
+
+\subsection{El perfilado confirma la hipótesis del caso de estudio 1}
+
+En el caso de estudio 1 se observó que la transposición de $B$ rendía mucho mejor que el kernel original y se propuso la hipótesis de que la causa era el patrón de acceso a memoria. El perfilado de esta actividad \textbf{confirma esa hipótesis con medición directa}: la tasa de fallo de caché L1 en lecturas baja de 22.4\% a 3.0\% cuando $B$ se transpone, y el número absoluto de fallos se reduce 7.4 veces.
+
+Esto no es un detalle menor: es la diferencia entre una explicación ``probablemente es la caché'' y una explicación respaldada por contadores de hardware simulados.
+
+\subsection{Por qué OpenMP no supera al kernel transpuesto}
+
+Los resultados de desempeño y de perfilado se combinan para explicar un fenómeno que a primera vista es sorprendente: \textbf{OpenMP con 12 hilos alcanza 4.54$\times$, pero el kernel transpuesto \emph{sin paralelizar nada} alcanza 3.55$\times$, y aplicar ambas cosas a la vez no está en el top de la tabla}.
+
+La explicación está en la tabla~\ref{tab:cachegrind}. El kernel con OpenMP \emph{hereda} el mal patrón de acceso del kernel naive: la tasa de fallo de caché L1 se mantiene en 22.5--22.8\% sin importar cuántos hilos trabajen. Añadir hilos no arregla un acceso ineficiente a la memoria; lo que hace es \emph{multiplicar} la demanda sobre la jerarquía de caché. Con 12 hilos compitiendo por el L3 compartido de 12\,MiB, la presión sobre la caché crece justo cuando el problema ya era limitado por ella.
+
+En cambio, el kernel transpuesto \emph{reduce} la demanda de caché en un factor 7.4. Es una mejora que aplica a \emph{cada} acceso, sin importar cuántos hilos haya. Por eso es tan-competitive: mejora el término que domina el tiempo.
+
+Esto explica también por qué el speedup de OpenMP \emph{no es lineal}: si el cuello de botella fuera solo el cómputo, con 8 hilos sobre 12 núcleos se esperaría un speedup cercano a 8$\times$, y se obtuvo 4.56$\times$. La diferencia es la contención por memoria.
+
+\subsection{Por qué el speedup crece con el tamaño de N}
+
+Una observación que merece explicación: el speedup de pthreads y de OpenMP \emph{crece} a medida que $N$ aumenta (pthreads: 1.40$\times$ en $N=500$ hasta 3.11$\times$ en $N=4000$; OpenMP: 2.75$\times$ hasta 4.54$\times$). Esto es el comportamiento \textbf{esperado} y no una anomalía:
+
+\begin{itemize}
+    \item Con $N$ chico, el trabajo total es tan pequeño que el \emph{overhead} (crear el equipo de hilos, la barrier final, la planificación) domina el tiempo medido. El speedup refleja el costo del overhead, no la velocidad del cómputo.
+    \item Con $N$ grande, el cómputo domina y el overhead se amortiza: el speedup se acerca al ideal.
+\end{itemize}
+
+La consecuencia es que \emph{el speedup de una estrategia solo puede evaluarse en el contexto del tamaño del problema}. Comparar strategies en un solo $N$ da información incompleta.
+
+\subsection{El punto donde T=16 deja de ayudar}
+
+El escalamiento muestra que $T=16$ es peor que $T=8$ para $N=4000$ (18.02\,s contra 16.67\,s). La máquina tiene 12 núcleos lógicos (8 físicos con hyperthreading), de modo que 16 hilos no se ejecutan en paralelo: el sistema debe planificar más tareas que cores disponibles, con el consiguiente costo de cambio de contexto. La curva de escalamiento \emph{decrece} a partir de cierto punto, que es la señal clásica de saturación del recurso.
+
+\subsection{Comparación con la paralelización manual}
+
+OpenMP (4.54$\times$ en $N=4000$) supera a pthreads manual (3.11$\times$), pese a ser la misma idea de fondo: hilos compartiendo memoria. La diferencia está en el \textbf{reparto del trabajo}. La versión manual reparte \emph{filas completas} de la matriz entre los hilos; cada hilo trabaja sobre un bloque contiguo de filas de $A$ y escribe en un bloque contiguo de filas de $C$, lo que preserva la localidad. La versión con \texttt{collapse(2)} reparte \emph{pares $(i,j)$} del espacio de $N^2$ iteraciones, y pares consecutivos asignados al mismo hilo pueden estar muy lejos en memoria.
+
+En este problema concreto, donde el acceso a $B$ ya es el problema, la localidad del reparto importa más que la finerza del reparto. Un reparto más fino (y por tanto más uniforme) no compensa una peor localidad. Esta es una observación valuable: \textbf{la granularidad del reparto y la localidad de datos interactúan, y no siempre la granularidad más fina es la mejor}.
+
+\subsection{El error metodológico que casi distorsionó el resultado}
+
+Durante el desarrollo de este trabajo, la primera medición de OpenMP se hizo compilando el binario con \texttt{-fopenmp -O0}, mientras que todas las demás estrategias usaban \texttt{-O2}. El resultado fue un speedup de entre 0.71$\times$ y 1.48$\times$, que hacía ver a OpenMP como la peor de las cinco estrategias.
+
+El error no era del código sino del \textbf{diseño del experimento}: al comparar un binario sin optimizar contra una base optimizada, la métrica mezclaba dos efectos distintos (paralelismo y flags de compilación) y la conclusion sobre el rendimiento de OpenMP era errónea. Corregido el flag a \texttt{-O2}, el $T=1$ de OpenMP da 76.02\,s contra los 75.65\,s del secuencial de referencia (0.5\% de diferencia), lo que confirma que la comparación quedó justa, y el speedup real resultó ser el \emph{mejor} de las cinco estrategias.
+
+La lección es general: \textbf{comparar estrategias de paralelización exige que todas se compilen con el mismo nivel de optimización}, o la comparación no aísla la variable de interés.
+
+\subsection{Qué aporta OpenMP frente a la paralelización manual}
+
+Más allá del número bruto, la comparación revela las dos caras de una API de alto nivel:
+
+\begin{itemize}
+    \item \textbf{Ventajas}: menos código (no hay que calcular rangos, ni crear ni unir hilos), \emph{reparto fino y uniforme} del espacio de iteraciones, y portabilidad (el mismo código corre en equipos con distinta cantidad de núcleos sin recompilar, cambiando \texttt{OMP\_NUM\_THREADS}).
+    \item \textbf{Desventajas}: \emph{overhead} del \textit{runtime} (que se paga incluso con $T=1$), y menos control sobre la localidad de datos, porque el reparto no se puede dirigir a un bloque contiguo.
+\end{itemize}

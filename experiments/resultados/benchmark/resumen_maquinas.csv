@@ -1,0 +1,5 @@
+N,maquina,T_optimo,T_optimo_(s),T_1_(s),speedup_interno,speedup_vs_maquina_A
+500,MaquinaA,16,0.0160,0.0450,2.81,1.00
+1000,MaquinaA,16,0.1179,0.4257,3.61,1.00
+2000,MaquinaA,16,1.2786,4.3026,3.36,1.00
+4000,MaquinaA,8,16.6689,76.0226,4.56,1.00
