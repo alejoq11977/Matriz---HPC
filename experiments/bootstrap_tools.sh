@@ -45,13 +45,27 @@ if command -v valgrind >/dev/null 2>&1; then
     echo "[valgrind] ya disponible en el sistema: $(command -v valgrind)"
 else
     if [ ! -x "$TOOLS/root/usr/bin/valgrind" ]; then
-        echo "[valgrind] descargando (sin sudo, ~15 MB)..."
-        apt-get download valgrind 2>/dev/null || true
-        for d in valgrind_*.deb; do
-            [ -e "$d" ] || continue
-            dpkg-deb -x "$d" "$TOOLS/root/"
-            rm -f "$d"
-        done
+        echo "[valgrind] descargando (sin sudo)..."
+        if command -v apt-get >/dev/null 2>&1; then
+            # Debian / Ubuntu
+            apt-get download valgrind 2>/dev/null || true
+            for d in valgrind_*.deb; do
+                [ -e "$d" ] || continue
+                dpkg-deb -x "$d" "$TOOLS/root/"
+                rm -f "$d"
+            done
+        elif command -v dnf >/dev/null 2>&1; then
+            # Fedora / RHEL: dnf download necesita dnf-plugins-core
+            dnf download --downloaddir=. --resolve valgrind 2>/dev/null || \
+                dnf download --downloaddir=. valgrind 2>/dev/null || true
+            for d in valgrind-*.rpm; do
+                [ -e "$d" ] || continue
+                rpm2cpio "$d" | (cd "$TOOLS/root" && cpio -idm --quiet)
+                rm -f "$d"
+            done
+        else
+            echo "        (no se reconoce el gestor de paquetes; instalalo a mano)"
+        fi
     fi
     if [ -x "$TOOLS/root/usr/bin/valgrind" ]; then
         export VALGRIND_LIB="$TOOLS/root/usr/libexec/valgrind"
@@ -62,6 +76,8 @@ else
         fi
     else
         echo "[valgrind] NO se pudo preparar (se continuara sin cachegrind)"
+        echo "        Para Fedora/RHEL: sudo dnf install valgrind"
+        echo "        Para Debian/Ubuntu: sudo apt install valgrind"
     fi
 fi
 

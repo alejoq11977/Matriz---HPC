@@ -85,10 +85,16 @@ El crecimiento con el número de hilos (de 4.4 a 4.7 MB) corresponde al \emph{ov
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.7\textwidth]{figuras/footprint_memoria.png}
+\includegraphics[width=0.75\textwidth]{figuras/footprint_memoria.png}
 \caption{Footprint de memoria (max RSS) por variante del kernel.}
 \label{fig:rss}
 \end{figure}
+
+La máquina B arroja valores prácticamente idénticos (4.5\,MB para el kernel secuencial, 4.8\,MB para OpenMP con 16 hilos), lo que confirma que el consumo de memoria del algoritmo depende solo del tamaño de las matrices y no del hardware ni del paralelismo.
+
+\subsection{Perfilado de CPU en la segunda máquina}
+
+El reporte de GProf de la máquina B es concluyente en el mismo sentido que el de la A: el 100\% del tiempo propio está en \texttt{multiplicar\_y\_medir}, con \texttt{llenar\_matrices\_con\_semilla} y \texttt{reservar\_matrices} marginales. Esto confirma que la decisión de cronometrar solo el kernel es correcta y generaliza a hardware de otro fabricante.
 
 \subsection{Desempeño: las cinco estrategias comparadas}
 
@@ -159,57 +165,75 @@ Dos detalles merecen atención. Primero, el $T=16$ \emph{empeora} frente al $T=8
 
 \subsection{Comparación entre las dos máquinas}
 
-\textit{[Pendiente de completar con la segunda máquina. Se deja la tabla y las gráficas listas para ser rellenadas con los resultados del segundo equipo.]}
-
-La máquina A, sobre la que se corrieron las mediciones de la tabla~\ref{tab:cinco-estrategias}, es:
-
-\begin{center}
-\begin{tabular}{|l|l|}
-\hline
-\textbf{Característica} & \textbf{Valor} \\
-\hline
-CPU & Intel Core i5-12450HX (12\textsuperscript{a} generación, Alder Lake) \\
-Núcleos físicos / lógicos & 8 / 12 (hyperthreading) \\
-Caché L1d / L2 / L3 & 320 KiB / 7 MiB / 12 MiB \\
-Memoria RAM & 15 GiB \\
-Sistema operativo & Debian GNU/Linux 13 (trixie), kernel 6.12.74 \\
-Compilador & gcc 14.2.0 \\
-Flags & \texttt{-Wall -O2 -fopenmp} \\
-\hline
-\end{tabular}
-\end{center}
+Las dos máquinas son hardware \emph{realmente distinto}: distinto fabricante, distinta arquitectura de CPU, distinta jerarquía de caché y distinto sistema operativo. La tabla~\ref{tab:hardware} las contrasta.
 
 \begin{table}[ht]
 \centering
-\begin{tabular}{|c|c|r|c|r|c|r|}
+\small
+\begin{tabular}{|l|l|l|}
 \hline
-\textbf{N} & \textbf{Máquina} & \textbf{T\_opt} & \textbf{T\_opt (s)} & \textbf{T=1 (s)} & \textbf{Speedup interno} & \textbf{\%$\Delta$ vs A} \\
+\textbf{Característica} & \textbf{Máquina A} & \textbf{Máquina B} \\
 \hline
-500  & A & 16 & 0.0160 & 0.0450 & 2.81$\times$ & --- \\
-500  & B & \textit{(completar)} & & & & \\
-1000 & A & 16 & 0.1179 & 0.4257 & 3.61$\times$ & --- \\
-1000 & B & \textit{(completar)} & & & & \\
-2000 & A & 16 & 1.2786 & 4.3026 & 3.36$\times$ & --- \\
-2000 & B & \textit{(completar)} & & & & \\
-4000 & A & 8  & 16.6689 & 76.0226 & 4.56$\times$ & --- \\
-4000 & B & \textit{(completar)} & & & & \\
+CPU & Intel Core i5-12450HX & AMD Ryzen 5 5500U \\
+ & (12\textsuperscript{a} gen., Alder Lake) & (Zen 2) \\
+Núcleos físicos / lógicos & 8 / 12 (hyperthreading) & 6 / 12 (hyperthreading) \\
+Caché L1d total & 320 KiB (8 instancias) & 192 KiB (6 instancias) \\
+Caché L2 total & 7 MiB (5 instancias) & 3 MiB (6 instancias) \\
+Caché L3 total & 12 MiB (1 instancia) & 8 MiB (2 instancias) \\
+Frecuencia máx. & 4.40 GHz & 4.06 GHz \\
+Memoria RAM & 15 GiB & 11 GiB \\
+Sistema operativo & Debian GNU/Linux 13 (trixie) & Fedora Linux 41 \\
+Kernel & 6.12.74 & 6.12.11 \\
+Compilador & gcc 14.2.0 & gcc 14.2.1 \\
+Flags & \texttt{-Wall -O2 -fopenmp} & \texttt{-Wall -O2 -fopenmp} \\
 \hline
 \end{tabular}
-\caption{Comparación entre máquinas. La columna $\%\Delta$ indica cuánto mayor (o menor) es el rendimiento de la máquina A respecto de la B, según $R=1/T$.}
+\caption{Comparación del hardware de las dos máquinas usadas en el benchmark.}
+\label{tab:hardware}
+\end{table}
+
+La tabla~\ref{tab:benchmark-maquinas} muestra el desempeño de OpenMP en cada equipo. Se reporta el mejor $T$ por $N$ en cada máquina, con la mediana de 10 corridas.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{|c|c|r|r|r|r|r|r|}
+\hline
+\textbf{N} & \textbf{Máq.} & \textbf{T\_opt} & \textbf{T\_opt (s)} & \textbf{T=1 (s)} & \textbf{Speedup int.} & \textbf{A sobre B} & \textbf{\%$\Delta$ rend.} \\
+\hline
+500  & A & 16 & 0.0160 & 0.0450 & 2.81$\times$ & 1.00$\times$ & --- \\
+500  & B & 16 & 0.0215 & 0.0765 & 3.56$\times$ & 1.34$\times$ & +34.2\% \\
+1000 & A & 16 & 0.1179 & 0.4257 & 3.61$\times$ & 1.00$\times$ & --- \\
+1000 & B & 16 & 0.2291 & 0.9875 & 4.31$\times$ & 1.94$\times$ & +94.3\% \\
+2000 & A & 16 & 1.2786 & 4.3026 & 3.36$\times$ & 1.00$\times$ & --- \\
+2000 & B & 8  & 3.2704 & 10.4561 & 3.20$\times$ & 2.56$\times$ & +155.8\% \\
+4000 & A & 8  & 16.6689 & 76.0226 & 4.56$\times$ & 1.00$\times$ & --- \\
+4000 & B & 8  & 59.9067 & 211.4092 & 3.53$\times$ & 3.59$\times$ & +259.4\% \\
+\hline
+\end{tabular}
+\caption{Desempeño de OpenMP en las dos máquinas. ``A sobre B'' es $t_B/t_A$ (cuántas veces más rápido es A), y $\%\Delta$ es la diferencia porcentual de rendimiento $R=1/T$: $(R_A-R_B)/R_B \times 100$.}
 \label{tab:benchmark-maquinas}
 \end{table}
+
+Tres lecturas se desprenden de esta tabla:
+
+\begin{enumerate}
+    \item \textbf{La máquina A es más rápida en términos absolutos y la diferencia crece con $N$}. En $N=500$ A es 1.34$\times$ más rápida, y en $N=4000$ es 3.59$\times$ más rápida (16.67\,s contra 59.91\,s). Es el comportamiento esperado: la diferencia de rendimiento por núcleo se amplifica con el comportamiento cúbico del algoritmo.
+    \item \textbf{El speedup interno es mayor en la máquina B para $N \leq 1000$} (3.56$\times$ contra 2.81$\times$ en $N=500$, y 4.31$\times$ contra 3.61$\times$ en $N=1000$). La máquina B tiene 6 núcleos físicos homogéneos (Zen 2), mientras que la A tiene una arquitectura híbrida con núcleos de alto y bajo rendimiento. Para problemas chicos, donde el overhead de paralelización pesa, la homogeneidad de núcleos importa más que la velocidad bruta.
+    \item \textbf{Para $N=4000$ la ventaja se invierte}: A escala mejor (4.56$\times$ contra 3.53$\times$) y termina siendo 3.59$\times$ más rápida. En problemas grandes el cómputo domina y gana el hardware más potente, que además tiene el L3 más grande (12\,MiB contra 8\,MiB), algo decisivo cuando el acceso a memoria es el cuello de botella.
+\end{enumerate}
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{figuras/benchmark_maquinas.png}
-\caption{Speedup interno de OpenMP en cada máquina.}
+\caption{Speedup interno de OpenMP en cada máquina. La máquina B escala mejor en problemas chicos, la máquina A en problemas grandes.}
 \label{fig:benchmark-maquinas}
 \end{figure}
 
 \begin{figure}[ht]
 \centering
-\includegraphics[width=0.9\textwidth]{figuras/benchmark_tiempos.png}
-\caption{Tiempo absoluto del mejor $T$ en cada máquina (escala logarítmica).}
+\includegraphics[width=0.95\textwidth]{figuras/benchmark_tiempos.png}
+\caption{Tiempo absoluto del mejor $T$ en cada máquina (escala logarítmica, izquierda) y cuántas veces más rápida es la máquina A respecto de la B (derecha).}
 \label{fig:benchmark-tiempos}
 \end{figure}
 

@@ -39,6 +39,8 @@ Para activar la simulación de caché hay que pasar la opción \texttt{--cache-s
 
 Valgrind no venía instalado en el sistema, pero no hizo falta permiso de administrador: el script \texttt{experiments/bootstrap\_tools.sh} descarga el paquete con \texttt{apt-get download} (que no requiere \texttt{sudo}) y lo extrae con \texttt{dpkg-deb -x} en una carpeta local del proyecto, ajustando la variable \texttt{VALGRIND\_LIB} para que encuentre sus archivos de soporte.
 
+En la máquina B (Fedora) este mecanismo automático \textbf{no funcionó}, porque \texttt{apt-get} no existe en Fedora y la descarga sin privilegios no está disponible para \texttt{dnf}. Por lo tanto en esa máquina quedaron medidos el perfil de CPU con GProf y el footprint de memoria con \texttt{getrusage}, pero no las métricas de Cachegrind. El script de bootstrap fue extendido para reconocer también \texttt{dnf}, de modo que en una próxima corrida sobre Fedora la instalación con \texttt{sudo dnf install valgrind} habilitaría la medición completa.
+
 \subsection{Footprint de memoria con \texttt{getrusage}}
 
 Para completar el eje de memoria con la medida del \emph{tamaño} del espacio de memoria utilizado (y no solo su eficiencia), se midió el \textbf{max RSS} (\textit{maximum resident set size}), que es la cantidad máxima de memoria física que el proceso tuvo residente simultáneamente. Se obtuvo con la llamada al sistema \texttt{getrusage(RUSAGE\_CHILDREN, ...)}, envuelta en un pequeño programa auxiliar (\texttt{experiments/maxrss.c}) que ejecuta la aplicación y reporta el pico de memoria del hijo. Esta medida no depende de ninguna herramienta externa.

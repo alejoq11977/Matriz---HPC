@@ -50,21 +50,27 @@ sudo apt install texlive-latex-recommended texlive-fonts-recommended
 
 ## Antes de entregar
 
-1. **Completar la segunda máquina.** El benchmark y el perfilado se miden con
-   `bash experiments/bench.sh <etiqueta> 500 1000 2000 4000` y
-   `bash experiments/perfilar.sh <etiqueta>` en cada equipo
-   (ver `experiments/REPRODUCIR_OTRA_MAQUINA.md`). Después, en el equipo
-   principal: `python3 experiments/plot_benchmark.py` y
-   `python3 experiments/plot_perfilado.py`.
-2. **Rellenar la tabla de comparación** en `secciones/10-resultados.tex` con los
-   datos de la máquina B y recalcular la columna `%\Delta`.
-3. **Regenerar las figuras** de `figuras/benchmark_maquinas.png`,
-   `figuras/benchmark_tiempos.png` y `figuras/cache_miss_rate_maquinas.png`
-   copiándolas de `experiments/resultados/benchmark/` y
-   `experiments/resultados/perfilado/`.
-4. **Ajustar la portada** (`portada.tex`): fecha de entrega y, si cambia,
+El benchmark entre las dos máquinas **ya está completo**: la máquina A (Intel
+i5-12450HX, Debian) y la máquina B (AMD Ryzen 5 5500U, Fedora) tienen sus 200
+corridas cada una, y la tabla comparativa de la sección 10 ya está rellenada.
+
+Queda pendiente:
+
+1. **Cachegrind en la máquina B** (opcional pero recomendado). En Fedora el
+   script de bootstrap no pudo preparar Valgrind automáticamente. Para
+   habilitarlo:
+   ```bash
+   sudo dnf install valgrind        # en la máquina B
+   bash experiments/perfilar.sh MaquinaB
+   ```
+   Después, copiar `experiments/resultados/perfilado/MaquinaB/` de vuelta,
+   correr `python3 experiments/plot_perfilado.py` y regenerar
+   `figuras/cache_miss_rate_maquinas.png`.
+
+2. **Ajustar la portada** (`portada.tex`): fecha de entrega y, si cambia,
    el título.
-5. **Renombrar la carpeta y el PDF** con los nombres finales de los integrantes:
+
+3. **Renombrar la carpeta y el PDF** con los nombres finales de los integrantes:
    ```
    mv HPCG1-CE02-Quintero-Quintero_Alvarez HPCG1-CE02-<Nombre1>-<Nombre2>_<Nombre3>
    mv main.pdf HPCG1-CE02-<Nombre1>-<Nombre2>_<Nombre3>.pdf

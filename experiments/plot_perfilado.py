@@ -129,15 +129,26 @@ def leer_hardware(ruta):
 
 
 def listar_maquinas():
-    """Devuelve las carpetas que parecen ser maquinas (tienen datos)."""
+    """Devuelve las carpetas que parecen ser maquinas (tienen datos).
+
+    Se acepta una maquina si tiene cualquiera de los tres tipos de dato:
+    cachegrind (metricas de cache), gprof (perfil de CPU) o rss (memoria).
+    Asi una maquina donde Cachegrind no pudo ejecutarse igual se reporta.
+    """
     if not os.path.isdir(BASE):
         return []
     found = []
     for nombre in sorted(os.listdir(BASE)):
         ruta = os.path.join(BASE, nombre)
-        if os.path.isdir(ruta) and any(
-                f.startswith('cachegrind_') and f.endswith('.txt')
-                for f in os.listdir(ruta)):
+        if not os.path.isdir(ruta):
+            continue
+        archivos = os.listdir(ruta)
+        tiene_cache = any(f.startswith('cachegrind_') and f.endswith('.txt')
+                           for f in archivos)
+        tiene_gprof = any(f.startswith('gprof_') and f.endswith('.txt')
+                           for f in archivos)
+        tiene_rss = 'rss.csv' in archivos
+        if tiene_cache or tiene_gprof or tiene_rss:
             found.append(nombre)
     return found
 

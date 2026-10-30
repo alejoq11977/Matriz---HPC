@@ -1,0 +1,6 @@
+variante,threads,max_rss_kb,max_rss_mb
+secuencial,1,4568,4.5
+transpuesto,1,4560,4.5
+openmp,1,4872,4.8
+openmp,8,4920,4.8
+openmp,16,4940,4.8

@@ -176,9 +176,27 @@ La guía completa para el segundo equipo (requisitos, checklist de preparación,
 
 Como la aplicación trabaja con **enteros**, no se puede reportar en FLOPS (el propio profesor lo señaló: *"en el caso de nosotros que estamos utilizando multiplicación de matrices con enteros, pues no podemos utilizar una unidad de medida de flops"*). La comparación se hace con tiempos, speedup y la diferencia porcentual de rendimiento: $\%\Delta = (R_x - R_y)/R_y \times 100$ con $R = 1/T$.
 
+### Resultado del benchmark entre las dos máquinas
+
+| | Máquina A | Máquina B |
+|---|---|---|
+| CPU | Intel Core i5-12450HX (Alder Lake) | AMD Ryzen 5 5500U (Zen 2) |
+| Núcleos / hilos | 8 / 12 | 6 / 12 |
+| Caché L1d / L2 / L3 | 320 KiB / 7 MiB / 12 MiB | 192 KiB / 3 MiB / 8 MiB |
+| SO | Debian 13 | Fedora 41 |
+
+| N | T_opt A | T_opt B | speedup A | speedup B | A es más rápido por |
+|---|---:|---:|---:|---:|---:|
+| 500 | 16 | 16 | 2.81× | 3.56× | 1.34× |
+| 1000 | 16 | 16 | 3.61× | **4.31×** | 1.94× |
+| 2000 | 16 | 8 | 3.36× | 3.20× | 2.56× |
+| 4000 | 8 | 8 | **4.56×** | 3.53× | **3.59×** |
+
+La máquina B escala mejor en problemas chicos (6 núcleos físicos homogéneos) y la A escala mejor en problemas grandes (más caché y más velocidad por núcleo).
+
 ## Documento de la entrega
 
-El documento LaTeX del caso de estudio 2 está en **`HPCG1-CE02-Quintero-Quintero_Alvarez/`** (29 páginas compiladas). Es autocontenido: incluye el marco teórico de OpenMP, benchmark y profiling, la justificación de las directivas elegidas citando los ejemplos 3.1, 3.8 y 5.3.5 del PDF oficial, los resultados del perfilado, los de desempeño en ambas máquinas, el análisis y las conclusiones.
+El documento LaTeX del caso de estudio 2 está en **`HPCG1-CE02-Quintero-Quintero_Alvarez/`** (32 páginas compiladas). Es autocontenido: incluye el marco teórico de OpenMP, benchmark y profiling, la justificación de las directivas elegidas citando los ejemplos 3.1, 3.8 y 5.3.5 del PDF oficial, los resultados del perfilado, los de desempeño en ambas máquinas, el análisis y las conclusiones.
 
 ```bash
 cd HPCG1-CE02-Quintero-Quintero_Alvarez && ./compilar.sh

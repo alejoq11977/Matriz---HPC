@@ -1,8 +1,8 @@
-caracteristica,MaquinaA
-Hostname,Alejandro
-CPU,12th Gen Intel(R) Core(TM) i5-12450HX
-Nucleos logicos,12
-Memoria RAM,15Gi
-Distribucion,Debian GNU/Linux 13 (trixie)
-Compilador,gcc (Debian 14.2.0-19) 14.2.0
-Flags de compilacion,-Wall -O2 -fopenmp
+caracteristica,MaquinaA,MaquinaB
+Hostname,Alejandro,fedora
+CPU,12th Gen Intel(R) Core(TM) i5-12450HX,AMD Ryzen 5 5500U with Radeon Graphics
+Nucleos logicos,12,12
+Memoria RAM,15Gi,11Gi
+Distribucion,Debian GNU/Linux 13 (trixie),Fedora Linux 41 (KDE Plasma)
+Compilador,gcc (Debian 14.2.0-19) 14.2.0,gcc (GCC) 14.2.1 20250110 (Red Hat 14.2.1-7)
+Flags de compilacion,-Wall -O2 -fopenmp,-Wall -O2 -fopenmp

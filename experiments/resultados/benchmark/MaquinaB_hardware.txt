@@ -1,0 +1,74 @@
+==============================================
+BENCHMARK - MAQUINA: MaquinaB
+==============================================
+Fecha de medicion : 2026-10-30 10:33:45 -05
+Hostname          : fedora
+Usuario           : alejandro
+
+--- Sistema operativo ---
+Linux fedora 6.12.11-200.fc41.x86_64 #1 SMP PREEMPT_DYNAMIC Fri Jan 24 04:59:58 UTC 2025 x86_64 GNU/Linux
+Distribucion      : Fedora Linux 41 (KDE Plasma)
+
+--- Procesador ---
+Architecture:                         x86_64
+CPU op-mode(s):                       32-bit, 64-bit
+Address sizes:                        48 bits physical, 48 bits virtual
+Byte Order:                           Little Endian
+CPU(s):                               12
+On-line CPU(s) list:                  0-11
+Vendor ID:                            AuthenticAMD
+Model name:                           AMD Ryzen 5 5500U with Radeon Graphics
+CPU family:                           23
+Model:                                104
+Thread(s) per core:                   2
+Core(s) per socket:                   6
+Socket(s):                            1
+Stepping:                             1
+Frequency boost:                      enabled
+CPU(s) scaling MHz:                   63%
+CPU max MHz:                          4056,0000
+CPU min MHz:                          400,0000
+BogoMIPS:                             4191,82
+Flags:                                fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca
+Virtualization:                       AMD-V
+L1d cache:                            192 KiB (6 instances)
+L1i cache:                            192 KiB (6 instances)
+L2 cache:                             3 MiB (6 instances)
+L3 cache:                             8 MiB (2 instances)
+NUMA node(s):                         1
+NUMA node0 CPU(s):                    0-11
+Vulnerability Gather data sampling:   Not affected
+Vulnerability Itlb multihit:          Not affected
+Vulnerability L1tf:                   Not affected
+Vulnerability Mds:                    Not affected
+Vulnerability Meltdown:               Not affected
+Vulnerability Mmio stale data:        Not affected
+Vulnerability Reg file data sampling: Not affected
+Vulnerability Retbleed:               Mitigation; untrained return thunk; SMT enabled with STIBP protection
+Vulnerability Spec rstack overflow:   Mitigation; Safe RET
+Vulnerability Spec store bypass:      Mitigation; Speculative Store Bypass disabled via prctl
+Vulnerability Spectre v1:             Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:             Mitigation; Retpolines; IBPB conditional; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected
+Vulnerability Srbds:                  Not affected
+Vulnerability Tsx async abort:        Not affected
+
+--- Memoria ---
+               total        used        free      shared  buff/cache   available
+Mem:            11Gi       7,0Gi       677Mi       253Mi       3,9Gi       4,0Gi
+
+--- Almacenamiento (raiz) ---
+/dev/nvme0n1p6   149G    82G   63G  57% /
+
+--- Compilador ---
+Compiler: gcc (GCC) 14.2.1 20250110 (Red Hat 14.2.1-7)
+
+--- Nucleos logicos detectados ---
+Nucleos logicos detectados: 12
+
+--- Parametros del experimento ---
+N               : 500 1000 2000 4000
+T               : 1 2 4 8 16
+Iteraciones     : 10
+Semilla         : 42
+Valor maximo    : 9
+Flags de compil.: -Wall -O2 -fopenmp

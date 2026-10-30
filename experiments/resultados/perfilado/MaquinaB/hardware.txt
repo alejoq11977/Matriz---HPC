@@ -1,0 +1,32 @@
+==============================================
+INFORMACION DEL EQUIPO - MaquinaB
+==============================================
+Fecha: vie 30 oct 2026 12:58:46 -05
+Hostname: fedora
+
+--- Kernel / SO ---
+Linux fedora 6.12.11-200.fc41.x86_64 #1 SMP PREEMPT_DYNAMIC Fri Jan 24 04:59:58 UTC 2025 x86_64 GNU/Linux
+
+--- CPU ---
+Architecture:                         x86_64
+CPU(s):                               12
+On-line CPU(s) list:                  0-11
+Vendor ID:                            AuthenticAMD
+Model name:                           AMD Ryzen 5 5500U with Radeon Graphics
+Thread(s) per core:                   2
+Core(s) per socket:                   6
+Socket(s):                            1
+CPU(s) scaling MHz:                   76%
+CPU max MHz:                          4056,0000
+CPU min MHz:                          400,0000
+L1d cache:                            192 KiB (6 instances)
+L1i cache:                            192 KiB (6 instances)
+L2 cache:                             3 MiB (6 instances)
+L3 cache:                             8 MiB (2 instances)
+
+--- Memoria ---
+               total        used        free      shared  buff/cache   available
+Mem:            11Gi       5,8Gi       811Mi       185Mi       4,9Gi       5,2Gi
+
+--- Compilador ---
+gcc (GCC) 14.2.1 20250110 (Red Hat 14.2.1-7)

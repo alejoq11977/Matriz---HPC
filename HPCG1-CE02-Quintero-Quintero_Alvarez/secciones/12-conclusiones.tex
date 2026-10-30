@@ -17,6 +17,8 @@ Se cumplieron los tres objetivos de la consigna. Primero, se implementó la conc
 
     \item \textbf{El escalamiento se satura y luego decrece}: con 12 núcleos lógicos, $T=16$ es peor que $T=8$ para $N=4000$. El número de hilos debe ajustarse a la capacidad real del equipo.
 
+    \item \textbf{El hardware define la escala de forma distinta según el tamaño del problema}. En el benchmark entre el Intel i5-12450HX (máquina A) y el AMD Ryzen 5 5500U (máquina B), la máquina B escala mejor en problemas chicos (4.31$\times$ contra 3.61$\times$ en $N=1000$, gracias a sus 6 núcleos físicos homogéneos) y la A escala mejor en problemas grandes (4.56$\times$ contra 3.53$\times$ en $N=4000$). La ventaja en tiempo de la A crece con $N$ (de 1.34$\times$ a 3.59$\times$), en consonancia con su mayor jerarquía de caché (L3 de 12\,MiB contra 8\,MiB).
+
     \item \textbf{Comparar estrategias exige igualar las condiciones de compilación}. La medición inicial con \texttt{-O0} para OpenMP y \texttt{-O2} para el resto llevó a la conclusión errónea de que OpenMP era la peor estrategia. Es un error metodológico, no de implementación, y el caso de estudio es una buena ilustración de por qué importa.
 
     \item \textbf{La granularidad del reparto y la localidad de datos interactúan}. El reparto fino de \texttt{collapse(2)} da mejor balance de carga pero peor localidad que el reparto manual por bloques de filas; en un problema limitado por la memoria, la localidad pesa más.
@@ -30,6 +32,7 @@ Se cumplieron los tres objetivos de la consigna. Primero, se implementó la conc
     \item La matriz $C$ se acumula en enteros de 32 bits. Con $N=4000$ y valores hasta 9, el máximo es $9 \times 4000 = 36000$, que no desborda, pero el margen es menor que en el caso de $N=1000$. Con valores o tamaños mayores habría que usar enteros más anchos o coma flotante.
     \item El footprint de memoria medido con \texttt{getrusage} no distingue el uso de memoria del proceso del de sus hilos, ni captura las asignaciones internas del \textit{runtime} de OpenMP.
     \item La comparación entre máquinas se realizó con el mismo compilador y los mismos flags, pero no se pudo controlar la versión del \textit{firmware}, la configuración de la BIOS ni el estado térmico de los equipos. Estos factores pueden introducir diferencias de varios puntos porcentuales.
+    \item En la máquina B no se pudo ejecutar Cachegrind, porque Valgrind no se pudo preparar automáticamente en Fedora (el script de bootstrap resuelve la descarga sin \texttt{sudo} en Debian/Ubuntu, pero en Fedora requiere \texttt{sudo dnf install valgrind}). Por eso el análisis de la tasa de fallo de caché comparada entre máquinas queda pendiente; los contadores de GProf y de memoria residente sí están medidos en ambos equipos.
 \end{itemize}
 
 \subsection{Trabajo futuro}
