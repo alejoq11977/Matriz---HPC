@@ -143,6 +143,10 @@ El enunciado pide además la "caracterización (perfilado) de la aplicación mí
 
 **Hallazgo central**: la transposición de `B` reduce la tasa de fallo de caché L1 en lecturas de **22.4% a 3.0%** (7.4× menos fallos absolutos). Y el miss rate **no depende del número de hilos** (22.8% / 22.5% / 22.8% para T=1/8/16): es una propiedad del patrón de acceso, no del paralelismo. Esto convierte en evidencia experimental la conclusión de que el cuello de botella del problema es la memoria.
 
+![Tasa de fallo de caché L1 por variante del kernel](experiments/resultados/perfilado/cache_miss_rate.png)
+
+*Izquierda: tasa de fallo de caché L1 en lecturas. Derecha: cantidad absoluta de fallos. El kernel transpuesto (verde) reduce la tasa de 22.4% a 3.0%.*
+
 Para correr el perfilado:
 
 ```bash
@@ -195,6 +199,14 @@ El benchmark compara el **rendimiento** ($R = 1/T$, y su análogo entero GOP/s),
 | 4000 | 8 | 8 | 7.68 | 2.14 | −72.2% | **A** | 4.56× | 3.53× | **A** |
 
 **La A gana en rendimiento en todos los tamaños** (hasta 3.59× más rápida en N=4000), mientras que **la B gana en escalamiento para los problemas chicos** (6 núcleos físicos homogéneos contra la arquitectura híbrida de la A). Para N≥2000 la ventaja se invierte también en speedup.
+
+![Benchmark: rendimiento absoluto y escalamiento de cada máquina](experiments/resultados/benchmark/benchmark_rendimiento.png)
+
+*Izquierda: rendimiento absoluto de cada equipo en GOP/s (miles de millones de operaciones enteras por segundo) — la A gana en todos los tamaños. Derecha: speedup interno de cada máquina, con el ganador anotado — la B gana en N=500 y N=1000, la A en N=2000 y N=4000.*
+
+![Speedup interno de OpenMP en cada máquina](experiments/resultados/benchmark/benchmark_maquinas.png)
+
+*Speedup interno de OpenMP en cada equipo: la B escala mejor en problemas chicos, la A en problemas grandes.*
 
 ## Documento de la entrega
 
