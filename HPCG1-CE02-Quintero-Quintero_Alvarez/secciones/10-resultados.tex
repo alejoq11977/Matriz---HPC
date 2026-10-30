@@ -192,35 +192,33 @@ Flags & \texttt{-Wall -O2 -fopenmp} & \texttt{-Wall -O2 -fopenmp} \\
 \label{tab:hardware}
 \end{table}
 
-La tabla~\ref{tab:benchmark-maquinas} muestra el desempeño de OpenMP en cada equipo. Se reporta el mejor $T$ por $N$ en cada máquina, con la mediana de 10 corridas.
+La tabla~\ref{tab:benchmark-maquinas} muestra el resultado del benchmark en cada equipo. Se reporta el mejor $T$ por $N$ en cada máquina, con la mediana de 10 corridas. Se separan las dos métricas: el \textbf{rendimiento} (tiempo absoluto y GOP/s), que es la comparación entre máquinas, y el \textbf{speedup interno}, que dice qué equipo paraleliza mejor.
 
-\begin{table}[ht]
+\begin{table}[H]
 \centering
-\small
-\begin{tabular}{|c|c|r|r|r|r|r|r|}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{|c|r|r|r|r|r|c|r|r|c|}
 \hline
-\textbf{N} & \textbf{Máq.} & \textbf{T\_opt} & \textbf{T\_opt (s)} & \textbf{T=1 (s)} & \textbf{Speedup int.} & \textbf{A sobre B} & \textbf{\%$\Delta$ rend.} \\
+\textbf{N} & \textbf{T\_A (s)} & \textbf{T\_B (s)} & \textbf{GOP/s A} & \textbf{GOP/s B} & \textbf{\%$\Delta$} & \textbf{Gana rend.} & \textbf{s\_A} & \textbf{s\_B} & \textbf{Gana sp.} \\
 \hline
-500  & A & 16 & 0.0160 & 0.0450 & 2.81$\times$ & 1.00$\times$ & --- \\
-500  & B & 16 & 0.0215 & 0.0765 & 3.56$\times$ & 1.34$\times$ & +34.2\% \\
-1000 & A & 16 & 0.1179 & 0.4257 & 3.61$\times$ & 1.00$\times$ & --- \\
-1000 & B & 16 & 0.2291 & 0.9875 & 4.31$\times$ & 1.94$\times$ & +94.3\% \\
-2000 & A & 16 & 1.2786 & 4.3026 & 3.36$\times$ & 1.00$\times$ & --- \\
-2000 & B & 8  & 3.2704 & 10.4561 & 3.20$\times$ & 2.56$\times$ & +155.8\% \\
-4000 & A & 8  & 16.6689 & 76.0226 & 4.56$\times$ & 1.00$\times$ & --- \\
-4000 & B & 8  & 59.9067 & 211.4092 & 3.53$\times$ & 3.59$\times$ & +259.4\% \\
+500  & 0.0160 (16) & 0.0215 (16) & 15.60 & 11.62 & $-25.5\%$ & \textbf{A} & 2.81$\times$ & 3.56$\times$ & \textbf{B} \\
+1000 & 0.1179 (16) & 0.2291 (16) & 16.96 &  8.73 & $-48.5\%$ & \textbf{A} & 3.61$\times$ & 4.31$\times$ & \textbf{B} \\
+2000 & 1.2786 (16) & 3.2704 (8)  & 12.51 &  4.89 & $-60.9\%$ & \textbf{A} & 3.36$\times$ & 3.20$\times$ & \textbf{A} \\
+4000 & 16.6689 (8) & 59.9067 (8) &  7.68 &  2.14 & $-72.2\%$ & \textbf{A} & 4.56$\times$ & 3.53$\times$ & \textbf{A} \\
 \hline
 \end{tabular}
-\caption{Desempeño de OpenMP en las dos máquinas. ``A sobre B'' es $t_B/t_A$ (cuántas veces más rápido es A), y $\%\Delta$ es la diferencia porcentual de rendimiento $R=1/T$: $(R_A-R_B)/R_B \times 100$.}
+\caption{Benchmark entre las dos máquinas. Entre paréntesis, el mejor $T$ de hilos de cada equipo. ``\%$\Delta$'' es $(R_B-R_A)/R_A \times 100$ con $R=1/T$: negativo significa que la máquina B rinde menos que la A. ``Gana rend.'' identifica la más rápida y ``Gana sp.'' la que mejor paraleliza.}
 \label{tab:benchmark-maquinas}
 \end{table}
 
-Tres lecturas se desprenden de esta tabla:
+Cuatro lecturas se desprenden de la tabla~\ref{tab:benchmark-maquinas}:
 
 \begin{enumerate}
-    \item \textbf{La máquina A es más rápida en términos absolutos y la diferencia crece con $N$}. En $N=500$ A es 1.34$\times$ más rápida, y en $N=4000$ es 3.59$\times$ más rápida (16.67\,s contra 59.91\,s). Es el comportamiento esperado: la diferencia de rendimiento por núcleo se amplifica con el comportamiento cúbico del algoritmo.
-    \item \textbf{El speedup interno es mayor en la máquina B para $N \leq 1000$} (3.56$\times$ contra 2.81$\times$ en $N=500$, y 4.31$\times$ contra 3.61$\times$ en $N=1000$). La máquina B tiene 6 núcleos físicos homogéneos (Zen 2), mientras que la A tiene una arquitectura híbrida con núcleos de alto y bajo rendimiento. Para problemas chicos, donde el overhead de paralelización pesa, la homogeneidad de núcleos importa más que la velocidad bruta.
-    \item \textbf{Para $N=4000$ la ventaja se invierte}: A escala mejor (4.56$\times$ contra 3.53$\times$) y termina siendo 3.59$\times$ más rápida. En problemas grandes el cómputo domina y gana el hardware más potente, que además tiene el L3 más grande (12\,MiB contra 8\,MiB), algo decisivo cuando el acceso a memoria es el cuello de botella.
+    \item \textbf{La máquina A gana en rendimiento en todos los tamaños}, y la ventaja se amplía con $N$: es 1.34$\times$ más rápida en $N=500$ y 3.59$\times$ más rápida en $N=4000$ (16.67\,s contra 59.91\,s). Es el comportamiento esperado: la diferencia de rendimiento por núcleo se amplifica con el comportamiento cúbico del algoritmo.
+    \item \textbf{La máquina B gana en escalamiento para los tamaños chicos} (3.56$\times$ contra 2.81$\times$ en $N=500$, y 4.31$\times$ contra 3.61$\times$ en $N=1000$). La B tiene 6 núcleos físicos homogéneos (Zen 2), mientras que la A es un diseño híbrido con núcleos de alto y de bajo rendimiento. Para problemas chicos, donde el reparto de trabajo entre núcleos desiguales es ineficiente, la homogeneidad importa más que la velocidad bruta.
+    \item \textbf{Para $N \geq 2000$ la ventaja se invierte también en escalamiento}: A escala mejor (4.56$\times$ contra 3.53$\times$ en $N=4000$) y termina siendo 3.59$\times$ más rápida. En problemas grandes el cómputo domina y gana el hardware más rápido, que además tiene el L3 más grande (12\,MiB contra 8\,MiB), algo decisivo cuando el acceso a memoria es el cuello de botella.
+    \item \textbf{El número óptimo de hilos es el mismo en ambas máquinas} para cada $N$ (16 para $N \leq 2000$ y 8 para $N=4000$), lo que sugiere que la estructura del problema, y no el hardware, es lo que determina dónde está el punto de saturación.
 \end{enumerate}
 
 \begin{figure}[ht]
@@ -228,6 +226,13 @@ Tres lecturas se desprenden de esta tabla:
 \includegraphics[width=0.9\textwidth]{figuras/benchmark_maquinas.png}
 \caption{Speedup interno de OpenMP en cada máquina. La máquina B escala mejor en problemas chicos, la máquina A en problemas grandes.}
 \label{fig:benchmark-maquinas}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.98\textwidth]{figuras/benchmark_rendimiento.png}
+\caption{Benchmark entre máquinas. Izquierda: rendimiento absoluto de cada equipo en GOP/s (miles de millones de operaciones enteras por segundo); la máquina A gana en todos los tamaños. Derecha: speedup interno, con el ganador de cada tamaño anotado; la máquina B gana en $N=500$ y $N=1000$, y la A en $N=2000$ y $N=4000$.}
+\label{fig:benchmark-rendimiento}
 \end{figure}
 
 \begin{figure}[ht]

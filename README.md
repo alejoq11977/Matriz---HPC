@@ -178,6 +178,8 @@ Como la aplicación trabaja con **enteros**, no se puede reportar en FLOPS (el p
 
 ### Resultado del benchmark entre las dos máquinas
 
+El benchmark compara el **rendimiento** ($R = 1/T$, y su análogo entero GOP/s), que es lo que el enunciado pide. El **speedup** es un dato complementario que dice qué equipo paraleliza mejor.
+
 | | Máquina A | Máquina B |
 |---|---|---|
 | CPU | Intel Core i5-12450HX (Alder Lake) | AMD Ryzen 5 5500U (Zen 2) |
@@ -185,14 +187,14 @@ Como la aplicación trabaja con **enteros**, no se puede reportar en FLOPS (el p
 | Caché L1d / L2 / L3 | 320 KiB / 7 MiB / 12 MiB | 192 KiB / 3 MiB / 8 MiB |
 | SO | Debian 13 | Fedora 41 |
 
-| N | T_opt A | T_opt B | speedup A | speedup B | A es más rápido por |
-|---|---:|---:|---:|---:|---:|
-| 500 | 16 | 16 | 2.81× | 3.56× | 1.34× |
-| 1000 | 16 | 16 | 3.61× | **4.31×** | 1.94× |
-| 2000 | 16 | 8 | 3.36× | 3.20× | 2.56× |
-| 4000 | 8 | 8 | **4.56×** | 3.53× | **3.59×** |
+| N | T_opt A | T_opt B | GOP/s A | GOP/s B | %Δ rend. | Gana rend. | s_A | s_B | Gana speedup |
+|---|---:|---:|---:|---:|---:|:---:|---:|---:|:---:|
+| 500 | 16 | 16 | 15.60 | 11.62 | −25.5% | **A** | 2.81× | 3.56× | **B** |
+| 1000 | 16 | 16 | 16.96 | 8.73 | −48.5% | **A** | 3.61× | 4.31× | **B** |
+| 2000 | 16 | 8 | 12.51 | 4.89 | −60.9% | **A** | 3.36× | 3.20× | **A** |
+| 4000 | 8 | 8 | 7.68 | 2.14 | −72.2% | **A** | 4.56× | 3.53× | **A** |
 
-La máquina B escala mejor en problemas chicos (6 núcleos físicos homogéneos) y la A escala mejor en problemas grandes (más caché y más velocidad por núcleo).
+**La A gana en rendimiento en todos los tamaños** (hasta 3.59× más rápida en N=4000), mientras que **la B gana en escalamiento para los problemas chicos** (6 núcleos físicos homogéneos contra la arquitectura híbrida de la A). Para N≥2000 la ventaja se invierte también en speedup.
 
 ## Documento de la entrega
 

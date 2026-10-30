@@ -139,16 +139,34 @@ def main():
     print(f"  Maquinas con datos: {[m['etiqueta'] for m in maquinas]}")
 
     # --- Tabla consolidada ---
-    # speedup_A_sobre_B = t_B / t_A  -> cuantas veces mas rapido es A que B
-    #   (equivale a R_A / R_B porque R = 1/T)
-    # %delta_A_vs_B = (R_A - R_B)/R_B * 100 = (t_B/t_A - 1) * 100
-    header = ['N', 'maquina', 'T_optimo', 'T_optimo_(s)', 'T_1_(s)',
-              'speedup_interno', 'speedup_A_sobre_B', '%delta_rendimiento_A_vs_B']
+    # El benchmark entre maquinas compara el RENDIMIENTO R = 1/T (tiempo
+    # absoluto y %Delta de rendimiento), que es lo que el profesor define.
+    # El speedup interno es un dato complementario: dice que tan bien escala
+    # la paralelizacion dentro de cada equipo.
+    #
+    # GOP/s: como el kernel trabaja con enteros no hay FLOPS, asi que se
+    # reporta el analogo entero: 2*N^3 operaciones (una multiplicacion y una
+    # suma por cada celda) por segundo.
+    #
+    # veces_A_sobre_B = t_B/t_A = R_A/R_B  (cuantas veces mas rapido es A)
+    # %delta_B_vs_A  = (R_B-R_A)/R_A * 100 = (t_A/t_B - 1) * 100
+    header = ['N', 'maquina', 'T_optimo', 'T_optimo_(s)', 'GOP/s (x1e9)',
+              'speedup_interno', 'veces_sobre_la_otra', '%delta_rend_vs_otra']
     filas = [header]
 
     # La primera maquina es la referencia
     ref = maquinas[0]
-    ref_et = ref['etiqueta']
+
+    def gops(n, t):
+        """Operaciones enteras por segundo, en miles de millones (GOP/s).
+
+        El kernel hace N^3 multiplicaciones y N^3 sumas, asi que se cuentan
+        2*N^3 operaciones. Como el trabajo es con enteros no hay FLOPS:
+        esta es la analogia entera.
+        """
+        if not t:
+            return ''
+        return f'{2.0 * n ** 3 / t / 1e9:.2f}'
 
     for m in maquinas:
         for n in m['ns']:
@@ -158,20 +176,52 @@ def main():
             t1 = m['base'].get(n, '')
             sp_int = (m['base'][n] / t_best) if n in m['base'] else ''
             # Comparacion cruzada contra la maquina de referencia
-            sp_cross = ''
+            veces = ''
             delta = ''
             if n in ref['mejores']:
                 t_ref = ref['mejores'][n][1]
-                sp_cross = f'{t_best / t_ref:.2f}'
-                delta = f'{(t_best / t_ref - 1) * 100:+.1f}'
+                if m is ref:
+                    veces = '1.00'
+                    delta = '0.0'
+                else:
+                    veces = f'{t_best / t_ref:.2f}'
+                    delta = f'{(t_ref / t_best - 1) * 100:+.1f}'
             filas.append([n, m['etiqueta'], bt, f'{t_best:.4f}',
-                          f'{t1:.4f}' if t1 != '' else '',
+                          gops(n, t_best),
                           f'{sp_int:.2f}' if sp_int != '' else '',
-                          sp_cross, delta])
+                          veces, delta])
 
     with open(f'{BASE}/resumen_maquinas.csv', 'w', newline='') as f:
         csv.writer(f).writerows(filas)
     print(f"  -> {BASE}/resumen_maquinas.csv")
+
+    # --- Tabla comparacion directa: quien gana en que ---
+    # (encabezado por N, una fila por metrica)
+    header2 = ['N', 'T_opt_A(s)', 'T_opt_B(s)', 'GOP/s_A', 'GOP/s_B',
+               '%delta_rend_B_vs_A', 'gana_rendimiento', 'speedup_A',
+               'speedup_B', 'gana_speedup']
+    filas2 = [header2]
+    if len(maquinas) >= 2:
+        a = maquinas[0]
+        b = maquinas[1]
+        for n in sorted(set(a['ns']) & set(b['ns'])):
+            if n not in a['mejores'] or n not in b['mejores']:
+                continue
+            ta = a['mejores'][n][1]
+            tb = b['mejores'][n][1]
+            sa = a['base'][n] / ta if n in a['base'] else 0
+            sb = b['base'][n] / tb if n in b['base'] else 0
+            filas2.append([
+                n, f'{ta:.4f}', f'{tb:.4f}',
+                gops(n, ta), gops(n, tb),
+                f'{(ta / tb - 1) * 100:+.1f}',
+                a['etiqueta'] if ta < tb else b['etiqueta'],
+                f'{sa:.2f}', f'{sb:.2f}',
+                a['etiqueta'] if sa > sb else b['etiqueta'],
+            ])
+        with open(f'{BASE}/comparacion_directa.csv', 'w', newline='') as f:
+            csv.writer(f).writerows(filas2)
+        print(f"  -> {BASE}/comparacion_directa.csv")
 
     # --- Grafica: speedup interno por maquina ---
     fig, ax = plt.subplots(figsize=(11, 6))
@@ -191,6 +241,82 @@ def main():
     plt.savefig(f'{BASE}/benchmark_maquinas.png', dpi=120)
     plt.close()
     print(f"  -> {BASE}/benchmark_maquinas.png")
+
+    # --- Grafica: RENDIMIENTO (GOP/s) y punto de cruce entre maquinas ---
+    # Esta es la grafica del benchmark: compara el rendimiento absoluto
+    # (GOP/s) de cada equipo, que es lo que el profesor define como
+    # comparacion entre maquinas.
+    if len(maquinas) >= 2:
+        a = maquinas[0]
+        b = maquinas[1]
+        ns_comunes = sorted(set(a['ns']) & set(b['ns']))
+        ns_comunes = [n for n in ns_comunes
+                      if n in a['mejores'] and n in b['mejores']]
+
+        fig, axes = plt.subplots(1, 2, figsize=(13.5, 5.5))
+
+        # Panel izquierdo: GOP/s por maquina
+        ax = axes[0]
+        ancho = 0.38
+        for k, m in enumerate([a, b]):
+            vals = []
+            for n in ns_comunes:
+                t = m['mejores'][n][1]
+                vals.append(2.0 * n ** 3 / t / 1e9)
+            xs = [i + (k - 0.5) * ancho for i in range(len(ns_comunes))]
+            barras = ax.bar(xs, vals, ancho, label=m['etiqueta'],
+                            color=COLORES[k % len(COLORES)],
+                            edgecolor='black', linewidth=0.6)
+            for bar, v in zip(barras, vals):
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                        f'{v:.2f}', ha='center', va='bottom', fontsize=8)
+        ax.set_xticks(range(len(ns_comunes)))
+        ax.set_xticklabels([f'N={n}' for n in ns_comunes])
+        ax.set_ylabel('GOP/s  (miles de millones de operaciones enteras/s)')
+        ax.set_title('Rendimiento absoluto de cada maquina')
+        ax.set_yscale('log')
+        ax.legend(title='Máquina')
+        ax.grid(True, axis='y', alpha=0.3)
+        # Panel derecho: speedup interno, con el ganador resaltado
+        ax = axes[1]
+        for k, m in enumerate([a, b]):
+            vals = []
+            for n in ns_comunes:
+                t = m['mejores'][n][1]
+                t1 = m['base'].get(n)
+                vals.append(t1 / t if t1 else 0)
+            xs = [i + (k - 0.5) * ancho for i in range(len(ns_comunes))]
+            barras = ax.bar(xs, vals, ancho, label=m['etiqueta'],
+                            color=COLORES[k % len(COLORES)],
+                            edgecolor='black', linewidth=0.6)
+            for bar, v in zip(barras, vals):
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                        f'{v:.2f}x', ha='center', va='bottom', fontsize=8)
+        ax.set_xticks(range(len(ns_comunes)))
+        ax.set_xticklabels([f'N={n}' for n in ns_comunes])
+        ax.set_ylabel('Speedup (vs T=1 de la misma maquina)')
+        ax.set_title('Escalamiento: quien paraleliza mejor')
+        ax.legend()
+        ax.grid(True, axis='y', alpha=0.3)
+        # Deja espacio arriba para las anotaciones de "gana X"
+        max_sp = max((a['base'][n] / a['mejores'][n][1]) if n in a['base'] else 0
+                     for n in ns_comunes) if ns_comunes else 1
+        ax.set_ylim(0, max_sp * 1.32)
+        # Marca en que N gana cada maquina en escalamiento
+        for i, n in enumerate(ns_comunes):
+            sa = a['base'][n] / a['mejores'][n][1]
+            sb = b['base'][n] / b['mejores'][n][1]
+            if abs(sa - sb) / max(sa, sb) > 0.03:
+                ganador = a['etiqueta'] if sa > sb else b['etiqueta']
+                ax.annotate(f'gana {ganador}', xy=(i, max(sa, sb)),
+                            xytext=(i, max(sa, sb) * 1.06),
+                            ha='center', fontsize=8, color='black',
+                            arrowprops=dict(arrowstyle='->', color='black', lw=0.8))
+
+        plt.tight_layout()
+        plt.savefig(f'{BASE}/benchmark_rendimiento.png', dpi=120)
+        plt.close()
+        print(f"  -> {BASE}/benchmark_rendimiento.png")
 
     # --- Grafica: tiempos absolutos por maquina ---
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))

@@ -1,5 +1,40 @@
 \section{Benchmark: protocolo y marco de comparación}
 
+\subsection{Qué compara un benchmark entre máquinas}
+
+Es importante separar dos métricas que a menudo se confunden, porque responden preguntas distintas:
+
+\begin{center}
+\begin{tabular}{|l|p{6.2cm}|p{6.2cm}|}
+\hline
+\textbf{Métrica} & \textbf{Qué mide} & \textbf{Para qué sirve} \\
+\hline
+\textbf{Rendimiento} ($R = 1/T$) &
+Cuánto trabajo resuelve el equipo en el menor tiempo posible &
+Es la comparación \emph{entre máquinas}: qué equipo es más rápido \\
+\hline
+\textbf{Speedup} ($S = T_1/T_T$) &
+Qué tan bien escala la paralelización dentro de un mismo equipo &
+Es una comparación \emph{intra-máquina}: qué equipo paraleliza mejor \\
+\hline
+\end{tabular}
+\end{center}
+
+La comparación entre máquinas que define el enunciado es la primera: el rendimiento. El speedup es un dato complementario que sale gratis de las mismas corridas y que da información valiosa sobre el hardware (por ejemplo, si un equipo escala peor es porque tiene núcleos heterogéneos o porque su caché es más lenta), pero no sustituye al rendimiento.
+
+Como la aplicación trabaja con \textbf{enteros}, no se puede reportar en FLOPS (el propio profesor lo señaló: en el caso de la multiplicación de matrices con enteros no se puede usar una unidad de medida de flops). Se reporta entonces el \textbf{rendimiento} en dos formas equivalentes:
+
+\begin{itemize}
+    \item El \textbf{tiempo absoluto} $T$ del mejor $T$ de hilos, que es la medida directa.
+    \item Los \textbf{GOP/s} (\textit{giga integer operations per second}), que es el análogo entero de los FLOPS: el kernel realiza $N^3$ multiplicaciones y $N^3$ sumas, así que se cuentan $2N^3$ operaciones por segundo, $2N^3/T$.
+\end{itemize}
+
+Y la comparación se expresa con la diferencia porcentual de rendimiento que dio el profesor:
+
+\[
+\%\Delta = \frac{R_x - R_y}{R_y} \times 100, \qquad R = \frac{1}{T}
+\]
+
 \subsection{Qué se mide y por qué el kernel}
 
 La consigna pide medir el rendimiento de la aplicación en dos máquinas diferentes. Como se explicó en la sección 3, un benchmark debe generar una carga \emph{representativa}. En este trabajo la carga representativa es \textbf{el kernel de la multiplicación de matrices}, por dos razones:
@@ -24,7 +59,7 @@ Para cada máquina se mide:
     \end{equation}
 \end{itemize}
 
-El \textbf{speedup interno} es la métrica más informativa para comparar máquinas, porque es \emph{independiente de la velocidad bruta del equipo}: mide cuánto paralelismo es capaz de extraer cada hardware. Un equipo más lento puede tener mejor speedup si su memoria es más rápida o si tiene menos núcleos que disputan la caché.
+Además del speedup interno, se reportan dos medidas del \textbf{rendimiento} de cada equipo: el tiempo absoluto del mejor $T$ de hilos y los GOP/s equivalentes. Las tres se reportan porque,\emph{juntas}, cuentan la historia completa: el rendimiento dice quién resuelve el problema más rápido, y el speedup dice por qué.
 
 \subsection{El protocolo para garantizar comparabilidad}
 

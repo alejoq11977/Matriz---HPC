@@ -1,0 +1,5 @@
+N,T_opt_A(s),T_opt_B(s),GOP/s_A,GOP/s_B,%delta_rend_B_vs_A,gana_rendimiento,speedup_A,speedup_B,gana_speedup
+500,0.0160,0.0215,15.60,11.62,-25.5,MaquinaA,2.81,3.56,MaquinaB
+1000,0.1179,0.2291,16.96,8.73,-48.5,MaquinaA,3.61,4.31,MaquinaB
+2000,1.2786,3.2704,12.51,4.89,-60.9,MaquinaA,3.36,3.20,MaquinaA
+4000,16.6689,59.9067,7.68,2.14,-72.2,MaquinaA,4.56,3.53,MaquinaA

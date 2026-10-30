@@ -74,4 +74,5 @@ Queda pendiente:
 | `cache_miss_rate.png` | `experiments/resultados/perfilado/cache_miss_rate.png` |
 | `footprint_memoria.png` | `experiments/resultados/perfilado/footprint_memoria.png` |
 | `benchmark_maquinas.png` | `experiments/resultados/benchmark/benchmark_maquinas.png` |
+| `benchmark_rendimiento.png` | `experiments/resultados/benchmark/benchmark_rendimiento.png` |
 | `benchmark_tiempos.png` | `experiments/resultados/benchmark/benchmark_tiempos.png` |
