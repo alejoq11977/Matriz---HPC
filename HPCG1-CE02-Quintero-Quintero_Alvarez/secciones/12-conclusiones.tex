@@ -32,7 +32,6 @@ Se cumplieron los tres objetivos de la consigna. Primero, se implementó la conc
     \item La matriz $C$ se acumula en enteros de 32 bits. Con $N=4000$ y valores hasta 9, el máximo es $9 \times 4000 = 36000$, que no desborda, pero el margen es menor que en el caso de $N=1000$. Con valores o tamaños mayores habría que usar enteros más anchos o coma flotante.
     \item El footprint de memoria medido con \texttt{getrusage} no distingue el uso de memoria del proceso del de sus hilos, ni captura las asignaciones internas del \textit{runtime} de OpenMP.
     \item La comparación entre máquinas se realizó con el mismo compilador y los mismos flags, pero no se pudo controlar la versión del \textit{firmware}, la configuración de la BIOS ni el estado térmico de los equipos. Estos factores pueden introducir diferencias de varios puntos porcentuales.
-    \item En la máquina B no se pudo ejecutar Cachegrind, porque Valgrind no se pudo preparar automáticamente en Fedora (el script de bootstrap resuelve la descarga sin \texttt{sudo} en Debian/Ubuntu, pero en Fedora requiere \texttt{sudo dnf install valgrind}). Por eso el análisis de la tasa de fallo de caché comparada entre máquinas queda pendiente; los contadores de GProf y de memoria residente sí están medidos en ambos equipos.
 \end{itemize}
 
 \subsection{Trabajo futuro}

@@ -39,26 +39,15 @@ Para activar la simulación de caché hay que pasar la opción \texttt{--cache-s
 
 Valgrind no venía instalado en el sistema, pero no hizo falta permiso de administrador: el script \texttt{experiments/bootstrap\_tools.sh} descarga el paquete con \texttt{apt-get download} (que no requiere \texttt{sudo}) y lo extrae con \texttt{dpkg-deb -x} en una carpeta local del proyecto, ajustando la variable \texttt{VALGRIND\_LIB} para que encuentre sus archivos de soporte.
 
-En la máquina B (Fedora) este mecanismo automático \textbf{no funcionó}, porque \texttt{apt-get} no existe en Fedora y la descarga sin privilegios no está disponible para \texttt{dnf}. Por lo tanto en esa máquina quedaron medidos el perfil de CPU con GProf y el footprint de memoria con \texttt{getrusage}, pero no las métricas de Cachegrind. El script de bootstrap fue extendido para reconocer también \texttt{dnf}, de modo que en una próxima corrida sobre Fedora la instalación con \texttt{sudo dnf install valgrind} habilitaría la medición completa.
-
 \subsection{Footprint de memoria con \texttt{getrusage}}
 
 Para completar el eje de memoria con la medida del \emph{tamaño} del espacio de memoria utilizado (y no solo su eficiencia), se midió el \textbf{max RSS} (\textit{maximum resident set size}), que es la cantidad máxima de memoria física que el proceso tuvo residente simultáneamente. Se obtuvo con la llamada al sistema \texttt{getrusage(RUSAGE\_CHILDREN, ...)}, envuelta en un pequeño programa auxiliar (\texttt{experiments/maxrss.c}) que ejecuta la aplicación y reporta el pico de memoria del hijo. Esta medida no depende de ninguna herramienta externa.
 
-\subsection{El perfilado depende del hardware: por qué se mide en cada máquina}
+\subsection{Alcance del perfilado}
 
-Un detalle metodológico importante condiciona todo el diseño del perfilado: \textbf{Cachegrind simula la jerarquía de caché real del equipo donde se ejecuta}. Lee los parámetros del procesador a través del \textit{CPUID} (tamaño de L1, de L2 y de L3, asociatividad, tamaño de línea) y reproduce ese comportamiento durante la ejecución.
+El perfilado \textbf{caracteriza la aplicación}: dice dónde se va el tiempo y cuánta presión sobre la memoria genera el kernel. El perfilado de CPU (GProf) se corre en las dos máquinas, mientras que el detalle fino de caché (Cachegrind) se midió en la máquina A, que es donde se corrió el experimento de desempeño principal.
 
-Esto se puede comprobar en la salida de la herramienta, que reporta explícitamente la caché que está simulando:
-
-\begin{verbatim}
--- warning: L3 cache found, using its data for the LL simulation.
--- warning: specified LL cache: line_size 64  assoc 8  total_size 12,582,912
-\end{verbatim}
-
-Los 12\,582\,912 bytes corresponden al L3 compartido de 12\,MiB del Intel Core i5-12450HX, es decir, la caché \emph{real} de la máquina usada.
-
-La consecuencia es que \textbf{la tasa de fallo de caché es un resultado dependiente del hardware}, no una propiedad intrínseca del algoritmo. Un kernel que funciona bien en una máquina con un L3 grande puede comportarse peor en otra con un L3 pequeño. Por eso el perfilado \textbf{se repite en cada una de las dos máquinas} del benchmark y los resultados se guardan separados por equipo, en las carpetas \texttt{experiments/resultados/perfilado/MaquinaA/} y \texttt{experiments/resultados/perfilado/MaquinaB/}.
+La comparación entre las dos máquinas se hace por otra vía: con el \textbf{benchmark}, que sí se ejecutó en los dos equipos (sección de comparación entre máquinas).
 
 \subsection{Tamaño de N usado para el perfilado}
 

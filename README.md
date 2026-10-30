@@ -150,7 +150,7 @@ bash experiments/perfilar.sh MaquinaA                          # ~5 min
 N_PERFILADO=1000 bash experiments/perfilar.sh MaquinaA        # más lento, más datos
 ```
 
-**El perfilado se separa por máquina** (`experiments/resultados/perfilado/<etiqueta>/`) porque **Cachegrind simula la jerarquía de caché real del equipo donde corre** (la lee del CPUID). Por eso las tasas de fallo son un resultado dependiente del hardware y hay que medirlas en cada equipo por separado.
+**El perfilado se separa por máquina** (`experiments/resultados/perfilado/<etiqueta>/`) para que los datos de cada equipo no se pisen entre sí. En la entrega final el perfilado de CPU (GProf) se reporta en las dos máquinas y el detalle de caché (Cachegrind) en la máquina de referencia.
 
 `perf` y `valgrind` no venían instalados en el sistema. `experiments/bootstrap_tools.sh` los baja **sin sudo** (con `apt-get download` + `dpkg-deb -x`) y los deja en `.tools/`, que está en `.gitignore`.
 

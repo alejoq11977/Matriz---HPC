@@ -56,21 +56,10 @@ corridas cada una, y la tabla comparativa de la sección 10 ya está rellenada.
 
 Queda pendiente:
 
-1. **Cachegrind en la máquina B** (opcional pero recomendado). En Fedora el
-   script de bootstrap no pudo preparar Valgrind automáticamente. Para
-   habilitarlo:
-   ```bash
-   sudo dnf install valgrind        # en la máquina B
-   bash experiments/perfilar.sh MaquinaB
-   ```
-   Después, copiar `experiments/resultados/perfilado/MaquinaB/` de vuelta,
-   correr `python3 experiments/plot_perfilado.py` y regenerar
-   `figuras/cache_miss_rate_maquinas.png`.
-
-2. **Ajustar la portada** (`portada.tex`): fecha de entrega y, si cambia,
+1. **Ajustar la portada** (`portada.tex`): fecha de entrega y, si cambia,
    el título.
 
-3. **Renombrar la carpeta y el PDF** con los nombres finales de los integrantes:
+2. **Renombrar la carpeta y el PDF** con los nombres finales de los integrantes:
    ```
    mv HPCG1-CE02-Quintero-Quintero_Alvarez HPCG1-CE02-<Nombre1>-<Nombre2>_<Nombre3>
    mv main.pdf HPCG1-CE02-<Nombre1>-<Nombre2>_<Nombre3>.pdf
@@ -83,7 +72,6 @@ Queda pendiente:
 | `comparativa_5_estrategias.png` | `experiments/resultados/caso_de_estudio_2_openmp.png` |
 | `comparativa_4_estrategias.png` | `experiments/resultados/caso_de_estudio_2.png` |
 | `cache_miss_rate.png` | `experiments/resultados/perfilado/cache_miss_rate.png` |
-| `cache_miss_rate_maquinas.png` | `experiments/resultados/perfilado/cache_miss_rate_maquinas.png` |
 | `footprint_memoria.png` | `experiments/resultados/perfilado/footprint_memoria.png` |
 | `benchmark_maquinas.png` | `experiments/resultados/benchmark/benchmark_maquinas.png` |
 | `benchmark_tiempos.png` | `experiments/resultados/benchmark/benchmark_tiempos.png` |
