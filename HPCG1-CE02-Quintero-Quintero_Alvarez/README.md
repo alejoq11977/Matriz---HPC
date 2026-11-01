@@ -20,19 +20,15 @@ concurrencia con OpenMP, perfilado de CPU y memoria, y benchmark entre dos máqu
 
 | # | Archivo | Contenido |
 |---|---|---|
-| 1 | `01-introduccion.tex` | Presentación del trabajo y organización |
-| 2 | `02-objetivos.tex` | Objetivo general y específicos |
-| 3 | `03-marco-teorico.tex` | OpenMP, métricas de rendimiento, benchmark, perfilado, jerarquía de caché |
-| 4 | `04-programa-base.tex` | El kernel secuencial y su patrón de acceso a memoria |
-| 5 | `05-medicion-tiempo.tex` | Wall clock vs tiempo de CPU, `CLOCK_MONOTONIC_RAW` |
-| 6 | `06-openmp.tex` | Implementación con OpenMP y justificación de las directivas |
-| 7 | `07-benchmark.tex` | Protocolo de comparación entre máquinas |
-| 8 | `08-perfilado.tex` | Herramientas de perfilado (GProf, Cachegrind, getrusage) |
-| 9 | `09-diseno-experimental.tex` | Variables, metodología, validación de correctitud |
-| 10 | `10-resultados.tex` | Resultados de perfilado, desempeño y benchmark |
-| 11 | `11-analisis.tex` | Análisis integrado |
-| 12 | `12-conclusiones.tex` | Hallazgos, limitaciones y trabajo futuro |
-| 13 | `13-referencias.tex` | Referencias |
+| 1 | `01-introduccion.tex` | Qué se hizo y objetivos |
+| 2 | `02-marco-teorico.tex` | OpenMP, métricas, benchmark vs profiling, caché |
+| 3 | `03-programa-y-medicion.tex` | El kernel, su patrón de acceso y la medición del tiempo |
+| 4 | `04-openmp.tex` | La directiva y su justificación |
+| 5 | `05-diseno-experimental.tex` | Variables, protocolo, validación y herramientas |
+| 6 | `06-resultados.tex` | Perfilado, desempeño y benchmark |
+| 7 | `07-analisis.tex` | Análisis integrado |
+| 8 | `08-conclusiones.tex` | Hallazgos, limitaciones y trabajo futuro |
+| 9 | `09-referencias.tex` | Referencias |
 
 ## Compilar
 

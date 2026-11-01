@@ -210,7 +210,7 @@ El benchmark compara el **rendimiento** ($R = 1/T$, y su análogo entero GOP/s),
 
 ## Documento de la entrega
 
-El documento LaTeX del caso de estudio 2 está en **`HPCG1-CE02-Quintero-Quintero_Alvarez/`** (32 páginas compiladas). Es autocontenido: incluye el marco teórico de OpenMP, benchmark y profiling, la justificación de las directivas elegidas citando los ejemplos 3.1, 3.8 y 5.3.5 del PDF oficial, los resultados del perfilado, los de desempeño en ambas máquinas, el análisis y las conclusiones.
+El documento LaTeX del caso de estudio 2 está en **`HPCG1-CE02-Quintero-Quintero_Alvarez/`** (19 páginas compiladas). Es autocontenido: incluye el marco teórico de OpenMP, benchmark y profiling, la justificación de las directivas elegidas citando los ejemplos 3.1, 3.8 y 5.3.5 del PDF oficial, los resultados del perfilado, los de desempeño en ambas máquinas, el análisis y las conclusiones.
 
 ```bash
 cd HPCG1-CE02-Quintero-Quintero_Alvarez && ./compilar.sh

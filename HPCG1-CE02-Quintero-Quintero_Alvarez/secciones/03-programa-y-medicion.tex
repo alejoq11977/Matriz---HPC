@@ -1,0 +1,44 @@
+\section{El kernel y cómo se mide}
+
+\subsection{El algoritmo}
+
+El programa calcula $C = A \times B$ con el algoritmo clásico, donde
+
+\[
+C[i][j] = \sum_{k=0}^{N-1} A[i][k] \cdot B[k][j]
+\]
+
+Son $N^2$ elementos a producir y $N$ productos cada uno: la complejidad es $O(N^3)$. El bucle es el mismo que después se paraleliza:
+
+\begin{verbatim}
+for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++)
+        for (int k = 0; k < N; k++)
+            C[i*N + j] += A[i*N + k] * B[k*N + j];
+\end{verbatim}
+
+Los índices \texttt{i*N + k} y \texttt{k*N + j} convierten el índice bidimensional en uno unidimensional porque las matrices viven en un bloque contiguo de memoria (allocado con \texttt{malloc}).
+
+El código está modularizado: \texttt{modules/memoria.c} reserva, \texttt{modules/llenado.c} genera los datos y \texttt{modules/tiempo\_mult.c} contiene el kernel y la medición. La versión con OpenMP es un módulo aparte (\texttt{modules/tiempo\_mult\_openmp.c}) con su propio header, lo que permite medir el \emph{kernel} de forma aislada, que es lo que interesa para el perfilado.
+
+\subsection{El patrón de acceso a memoria}
+
+Este detalle es central para el análisis, así que conviene hacerlo explícito desde el inicio. En el bucle interior, con $i$ y $j$ fijos, el índice $k$ recorre:
+
+\begin{itemize}
+    \item $A[i \cdot N + k]$: acceso \textbf{contiguo}. Al avanzar $k$, la dirección avanza de a un entero; la fila $i$ de $A$ se recorre secuencialmente.
+    \item $B[k \cdot N + j]$: acceso \textbf{con salto}. Al avanzar $k$, la dirección avanza $N$ enteros; la columna $j$ de $B$ se recorre a saltos y cada salto cae normalmente en una línea de caché diferente.
+    \item $C[i \cdot N + j]$: acceso \textbf{constante}; queda en un registro.
+\end{itemize}
+
+Es decir: la mitad del trabajo de la multiplicación (la lectura de $B$) accede a la memoria en un orden que no corresponde al orden en que los datos están almacenados. Este patrón es el que mide Cachegrind en la sección 6 y el que explica, en el análisis, por qué la transposición de $B$ produce una ganancia tan grande sin necesidad de paralelizar.
+
+\subsection{Medición del tiempo}
+
+Se mide el \textbf{wall clock} con \texttt{clock\_gettime(CLOCK\_MONOTONIC\_RAW, ...)}: es monotónica (nunca retrocede) y \emph{raw}, es decir, inmune a los ajustes que NTP hace sobre el reloj del sistema, que meterían ruido en las mediciones cortas. La alternativa \texttt{clock()} mide tiempo de CPU, que es otra cosa.
+
+Se cronometra \textbf{solo la multiplicación}: la reserva de memoria, el llenado y la impresión quedan fuera, porque no son el trabajo analizado. El perfilado de GProf confirma esta decisión: el 100\% del tiempo propio está en la función del kernel.
+
+\subsection{Por qué 10 corridas}
+
+Una sola medición no es confiable: el sistema puede tener otra tarea corriendo, una preempción puede caer en la corrida, o el proceso puede usar la CPU en el momento crítico. Se repiten \textbf{10 corridas por configuración} y se toma la \textbf{mediana}, que es robusta frente a valores atípicos. Además, el script recorre las repeticiones por fuera y los tamaños por dentro: si las 10 repeticiones de un mismo $N$ fueran seguidas, los datos quedarían \emph{calientes} en la caché y la medición saldría artificialmente rápida.

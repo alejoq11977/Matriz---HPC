@@ -1,0 +1,53 @@
+\section{Diseño experimental: perfilado y benchmark}
+
+\subsection{Qué se mide en cada parte}
+
+El \textbf{perfilado} caracteriza la aplicación: dice dónde se va el tiempo de CPU y cuánta presión genera sobre la memoria. El perfilado de CPU (GProf) se corre en las dos máquinas; el detalle fino de caché (Cachegrind) se midió en la máquina A, que es donde se corrió el experimento de desempeño principal.
+
+El \textbf{benchmark} compara las dos máquinas. Como se explicó en la sección 2, la métrica de esa comparación es el \textbf{rendimiento} ($R = 1/T$, y su análogo entero GOP/s). El \textbf{speedup} es un dato complementario que sale de las mismas corridas y dice qué equipo paraleliza mejor. Se reportan ambos porque juntos cuentan la historia completa: el rendimiento dice quién resuelve el problema más rápido, y el speedup dice por qué.
+
+\subsection{Variables}
+
+\begin{itemize}
+    \item \textbf{Tamaño de la matriz} ($N$): 500, 1000, 2000 y 4000.
+    \item \textbf{Cantidad de hilos} ($T$): 1 (secuencial), 2, 4, 8 y 16. Es el mismo conjunto que en la rama de pthreads del caso de estudio 1, para que las curvas sean directamente comparables.
+    \item \textbf{Variable medida}: tiempo de la multiplicación en segundos.
+    \item \textbf{Métricas calculadas}: speedup contra el secuencial, tasa de fallo de caché, número de instrucciones ejecutadas y memoria máxima residente.
+\end{itemize}
+
+Son \textbf{200 mediciones de desempeño por máquina} (5 valores de $T$ × 4 de $N$ × 10 repeticiones), más las 5 corridas de Cachegrind y las 5 de \texttt{getrusage} del perfilado.
+
+\subsection{Protocolo de comparabilidad}
+
+Un benchmark entre máquinas solo es válido si las condiciones son equivalentes:
+
+\begin{itemize}
+    \item \textbf{Mismo código fuente}: la misma rama del repositorio, con el mismo hash de commit.
+    \item \textbf{Mismos flags de compilación}: \texttt{-Wall -O2 -fopenmp} en ambos equipos, con el mismo compilador.
+    \item \textbf{Mismos datos}: semilla 42 y valor máximo 9 en todas las corridas, así que las matrices son idénticas bit a bit.
+    \item \textbf{Misma metodología}: 10 corridas por configuración, intercalando los tamaños de matriz, y mediana como estimador.
+    \item \textbf{Mismo estado del equipo}: sin otras cargas, conectado a la corriente (para que el procesador no baje su frecuencia) y con temperatura estable.
+\end{itemize}
+
+\subsection{Validación de correctitud}
+
+Medir tiempos sin verificar que el programa calcula lo correcto es un error metodológico grave. Antes de cada corrida de medición, el script \texttt{experiments/medir\_openmp.sh} ejecuta una \textbf{validación de correctitud}: genera con \texttt{experiments/verify\_ref} una matriz resultado de referencia con $N=10$ y semilla 42, ejecuta el binario de OpenMP con los mismos parámetros, y compara las dos matrices $C$ elemento a elemento. Si \textbf{no coinciden exactamente}, el script aborta y no se mide nada. Es el mismo mecanismo usado en los labs 1 y 2 del caso de estudio 1, por lo que la implementación de referencia se reutilizó sin modificaciones.
+
+\subsection{Herramientas}
+
+\begin{center}
+\begin{tabular}{|l|p{8.5cm}|}
+\hline
+\textbf{Herramienta} & \textbf{Uso} \\
+\hline
+\texttt{gcc} 14.2.0 & Compilador. Flags \texttt{-Wall -O2 -fopenmp}. \\
+\texttt{gprof} & Perfilado de CPU por muestreo con instrumentación \texttt{-pg}. \\
+\texttt{valgrind}/\texttt{cachegrind} & Perfilado de memoria: simulación de caché, D1/LL misses. \\
+\texttt{getrusage} & Memoria máxima residente (max RSS) del proceso hijo. \\
+\texttt{lscpu}, \texttt{free}, \texttt{uname} & Captura automática del hardware de cada equipo. \\
+\texttt{matplotlib} & Generación de las gráficas. \\
+\hline
+\end{tabular}
+\end{center}
+
+Valgrind no venía instalado, pero no hizo falta \texttt{sudo}: el script \texttt{experiments/bootstrap\_tools.sh} descarga el paquete con \texttt{apt-get download} (que no requiere privilegios) y lo extrae con \texttt{dpkg-deb -x} en una carpeta local del proyecto, ajustando \texttt{VALGRIND\_LIB} para que encuentre sus archivos de soporte.

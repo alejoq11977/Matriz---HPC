@@ -1,0 +1,47 @@
+\section{Conceptos mínimos}
+
+\subsection{OpenMP}
+
+OpenMP es una \textbf{API de paralelización para arquitecturas de memoria compartida}. No es un lenguaje: es un conjunto de \textbf{directivas de compilador} (centinela \texttt{\#pragma omp}), \textbf{rutinas de biblioteca} y \textbf{variables de ambiente}.
+
+La \textbf{región paralela} es el bloque central: el hilo maestro crea un equipo de hilos, todos ejecutan el bloque, y al final hay una barrera implícita que espera a que todos terminen. Un \textbf{loop construct} reparte las iteraciones de un bucle entre los hilos del equipo.
+
+Dos detalles que importan para este trabajo:
+
+\begin{itemize}
+    \item Las directivas se \textbf{ignoran silenciosamente} si el programa no se compila con \texttt{-fopenmp}. El flag no es opcional.
+    \item Por defecto las variables son \emph{compartidas} entre los hilos, salvo las variables de control de los bucles, que son \emph{privadas}. Se puede forzar con las cláusulas \texttt{shared()} y \texttt{private()}.
+\end{itemize}
+
+\subsection{Métricas de rendimiento}
+
+Hay dos formas de medir el rendimiento computacional: el \textbf{tiempo de respuesta} (cuánto tarda \emph{una} aplicación, la métrica del usuario final) y el \textbf{throughput} (cuánto trabajo completa el sistema por unidad de tiempo, la métrica del sistema).
+
+Para comparar dos máquinas, el rendimiento se define como $R = 1/T$ y la diferencia porcentual como
+
+\[
+\%\Delta = \frac{R_x - R_y}{R_y} \times 100
+\]
+
+Las unidades históricas son los \textbf{MIPS} (millones de instrucciones por segundo), que dependen del repertorio de instrucciones y por ello no son comparables entre arquitecturas, y los \textbf{FLOPS} (operaciones de coma flotante por segundo), que son la unidad moderna pero \textbf{solo aplican a operaciones de coma flotante}.
+
+Como el kernel de este trabajo trabaja con \textbf{enteros}, \textbf{no se puede reportar en FLOPS}. Se usan en su lugar el tiempo absoluto y los \textbf{GOP/s} (\textit{giga integer operations per second}), análogo entero: el kernel hace $N^3$ multiplicaciones y $N^3$ sumas, así que se cuentan $2N^3$ operaciones por segundo.
+
+\subsection{Benchmark y perfilado}
+
+Un \textbf{benchmark} es un programa que genera una \emph{carga de trabajo} conocida para evaluar el rendimiento de un equipo. Aplicado a un caso real, lo correcto es medir el \textbf{kernel}: la parte central del programa que consume la mayor parte del tiempo. Los benchmarks reducidos o sintéticos no son una buena opción para caracterizar una aplicación real, porque no generan una carga realista sobre la memoria.
+
+El \textbf{perfilado} tiene otro objetivo: no medir el desempeño sino \textbf{identificar el comportamiento del programa} en una arquitectura concreta, es decir, dónde se inefficiencies, dónde hay embotellamiento de memoria, y qué explica el escalamiento. Hay dos familias de herramientas que se usan aquí:
+
+\begin{itemize}
+    \item \textbf{GProf}: perfilador por muestreo integrado con el compilador. Se activa con la bandera \texttt{-pg}, que inserta instrumentación; el programa escribe un archivo \texttt{gmon.out} al ejecutarse, y la utilidad \texttt{gprof} lo convierte en un reporte legible.
+    \item \textbf{Cachegrind}: simulador de caché del proyecto Valgrind. Reproduce el comportamiento de una jerarquía de caché durante la ejecución y reporta, por función, las instrucciones ejecutadas y los \textbf{fallos de caché} (\textit{misses}) en L1 y en el último nivel. Con la opción \texttt{--cache-sim=yes} añade las tasas de fallo de lectura y escritura.
+\end{itemize}
+
+Un tercer dato, el \textbf{max RSS} (\textit{maximum resident set size}), da el tamaño del espacio de memoria utilizado y se obtiene con la llamada al sistema \texttt{getrusage}, sin depender de ninguna herramienta externa.
+
+\subsection{Caché y miss rate}
+
+El procesador no accede a la RAM directamente: hay una jerarquía de cachés, pequeñas y muy rápidas, entre el núcleo y la memoria. El \textbf{miss rate} es la fracción de accesos a un nivel que no se encuentran en ese nivel y deben bajar al siguiente. Un miss a RAM cuesta cientos de ciclos, mientras que un acierto a L1 cuesta unos pocos, por lo que el miss rate explica directamente el rendimiento de un kernel.
+
+Cuando se dice que un acceso es \emph{contiguo} se está describiendo el patrón con que se recorre un arreglo en memoria. En el kernel clásico de multiplicación de matrices el acceso a $B$ \textbf{no} es contiguo, y esa es la raíz del problema que se mide en la sección 6.

@@ -1,0 +1,43 @@
+\section{Análisis de resultados}
+
+\subsection{El perfilado confirma la hipótesis del caso de estudio 1}
+
+En el caso de estudio 1 se observó que la transposición de $B$ rendía mucho mejor que el kernel original y se propuso que la causa era el patrón de acceso a memoria. El perfilado lo \textbf{confirma con medición directa}: la tasa de fallo de caché L1 en lecturas baja de 22.4\% a 3.0\% al transponer $B$, y el número absoluto de fallos se reduce 7.4 veces. Esto no es un detalle menor: es la diferencia entre una explicación ``probablemente es la caché'' y una respaldada por contadores.
+
+\subsection{Por qué OpenMP no supera al kernel transpuesto}
+
+Los resultados de desempeño y de perfilado se combinan para explicar un fenómeno que a primera vista es sorprendente: \textbf{OpenMP con 12 hilos alcanza 4.54$\times$, pero el kernel transpuesto \emph{sin paralelizar nada} alcanza 3.55$\times$}.
+
+La explicación está en la tabla~\ref{tab:cachegrind}. El kernel con OpenMP \emph{hereda} el mal patrón de acceso del kernel naive: la tasa de fallo de caché se mantiene en 22.5--22.8\% sin importar cuántos hilos trabajen. Añadir hilos no arregla un acceso ineficiente a la memoria; lo que hace es \emph{multiplicar} la demanda sobre la jerarquía de caché. Con 12 hilos compitiendo por el L3 compartido de 12\,MiB, la presión sobre la caché crece justo cuando el problema ya estaba limitado por ella.
+
+El kernel transpuesto, en cambio, \emph{reduce} la demanda de caché en un factor 7.4. Es una mejora que aplica a \emph{cada} acceso, sin importar cuántos hilos haya. Por eso es tan competitiva: mejora el término que domina el tiempo.
+
+Esto explica también por qué el speedup de OpenMP \emph{no es lineal}: si el cuello de botella fuera solo el cómputo, con 8 hilos sobre 12 núcleos se esperaría un speedup cercano a 8$\times$, y se obtuvo 4.56$\times$. La diferencia es la contención por memoria.
+
+\subsection{Por qué el speedup crece con el tamaño de N}
+
+Una observación que merece explicación: el speedup de pthreads y de OpenMP \emph{crece} a medida que $N$ aumenta (pthreads: 1.40$\times$ en $N=500$ hasta 3.11$\times$ en $N=4000$; OpenMP: 2.75$\times$ hasta 4.54$\times$). Es el comportamiento \textbf{esperado}: con $N$ chico el trabajo total es tan pequeño que el \emph{overhead} (crear el equipo de hilos, la barrier final, la planificación) domina el tiempo medido; con $N$ grande el cómputo domina y el overhead se amortiza. La consecuencia es que \emph{el speedup de una estrategia solo puede evaluarse en el contexto del tamaño del problema}.
+
+\subsection{Qué nos enseña la comparación entre las dos máquinas}
+
+El benchmark entre el Intel i5-12450HX y el AMD Ryzen 5 5500U da dos resultados complementarios.
+
+Primero, \textbf{el hardware define la escala de forma distinta según el tamaño del problema}. La máquina B escala mejor en problemas chicos (4.31$\times$ contra 3.61$\times$ en $N=1000$) y la máquina A escala mejor en problemas grandes (4.56$\times$ contra 3.53$\times$ en $N=4000$). La B tiene 6 núcleos físicos homogéneos (Zen 2), mientras que la A es un diseño híbrido con núcleos de alto y de bajo rendimiento. En un problema chico el reparto de trabajo entre núcleos desiguales es ineficiente y se nota; en un problema grande el cómputo puro domina y gana el hardware más rápido. Ninguna de las dos máquinas es ``mejor'' en abstracto: son mejores para problemas distintos.
+
+Segundo, \textbf{la ventaja de la máquina A se amplía con $N$}, de 1.34$\times$ en $N=500$ a 3.59$\times$ en $N=4000$. Es la firma de una diferencia de rendimiento por núcleo y por ancho de banda de memoria que el algoritmo cúbico amplifica, y es consistente con la jerarquía de caché: la A tiene 12\,MiB de L3 contra 8\,MiB de la B. Como el acceso a la caché es el cuello de botella de este problema, no es sorprendente que las diferencias de caché se traduzcan directamente en diferencias de tiempo.
+
+Un detalle adicional: el $T$ óptimo es \textbf{el mismo en ambas máquinas} para cada $N$ (16 hasta $N=2000$, 8 en $N=4000$), lo que sugiere que la saturación la determina la estructura del problema y no el hardware.
+
+\subsection{Granularidad del reparto contra localidad de datos}
+
+OpenMP (4.54$\times$ en $N=4000$) supera a pthreads manual (3.11$\times$), pese a ser la misma idea: hilos compartiendo memoria. La diferencia está en el \textbf{reparto del trabajo}. La versión manual reparte \emph{filas completas} de la matriz entre los hilos, de modo que cada hilo trabaja sobre un bloque contiguo de filas y conserva la localidad. La versión con \texttt{collapse(2)} reparte \emph{pares $(i,j)$} del espacio de $N^2$ iteraciones, y pares consecutivos asignados al mismo hilo pueden estar muy lejos en memoria.
+
+En este problema, donde el acceso a $B$ ya es el problema, la localidad del reparto importa más que la finerza del reparto: un reparto más fino y más uniforme no compensa una peor localidad.
+
+\subsection{El error metodológico que casi distorsionó el resultado}
+
+La primera medición de OpenMP se hizo compilando el binario con \texttt{-fopenmp -O0}, mientras todas las demás estrategias usaban \texttt{-O2}. El resultado fue un speedup de entre 0.71$\times$ y 1.48$\times$, que hacía ver a OpenMP como la peor de las cinco estrategias.
+
+El error no era del código sino del \textbf{diseño del experimento}: al comparar un binario sin optimizar contra una base optimizada, la métrica mezclaba dos efectos distintos y la conclusión sobre el rendimiento de OpenMP era errónea. Corregido el flag, el $T=1$ de OpenMP da 76.02\,s contra los 75.65\,s del secuencial (0.5\% de diferencia), lo que confirma que la comparación quedó justa, y el speedup real resultó ser el \emph{mejor} de las cinco estrategias.
+
+La lección es general: \textbf{comparar estrategias de paralelización exige que todas usen el mismo nivel de optimización del compilador}.
