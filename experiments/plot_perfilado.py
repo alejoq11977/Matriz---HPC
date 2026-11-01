@@ -181,6 +181,14 @@ for maq in maquinas:
         'hw': leer_hardware(f'{carpeta}/hardware.txt'),
     }
 
+# Solo las maquinas con datos de Cachegrind pueden aparecer en las graficas
+# de cache: si no, la fila saldria vacia y confunde.
+maquinas_con_cache = [m for m in maquinas if datos_por_maquina[m]['variantes']]
+sin_cache = [m for m in maquinas if m not in maquinas_con_cache]
+if sin_cache:
+    print(f"  Sin metricas de cache (Cachegrind no disponible): {sin_cache}")
+    print(f"    -> se omiten de las graficas de cache; el resto de datos si se reporta")
+
 
 def buscar(maq, variante, etiqueta, clave):
     """Devuelve el valor de una metrica, o None."""
@@ -234,88 +242,91 @@ def etiquetas_de_variantes(maq):
     return out
 
 
-n_maquinas = len(maquinas)
-fig, axes = plt.subplots(n_maquinas, 2, figsize=(12, 4.2 * n_maquinas), squeeze=False)
+n_maquinas = len(maquinas_con_cache)
+if n_maquinas == 0:
+    print("  (sin metricas de cache: no se generan las graficas de cache)")
+else:
+    fig, axes = plt.subplots(n_maquinas, 2, figsize=(12, 4.2 * n_maquinas), squeeze=False)
 
-for i, maq in enumerate(maquinas):
-    pares = etiquetas_de_variantes(maq)
-    nombres = [f'{v}\nT={t[1:]}' for v, t in pares]
+    for i, maq in enumerate(maquinas_con_cache):
+        pares = etiquetas_de_variantes(maq)
+        nombres = [f'{v}\nT={t[1:]}' for v, t in pares]
 
-    # Panel izquierdo: tasa de fallo de lectura
-    ax = axes[i][0]
-    valores = [buscar(maq, v, t, 'D1_rate_rd') for v, t in pares]
-    colores = [COLORES[v] for v, _ in pares]
-    barras = ax.bar(range(len(pares)), valores, color=colores,
-                    edgecolor='black', linewidth=0.6)
-    ax.set_xticks(range(len(pares)))
-    ax.set_xticklabels(nombres, fontsize=8)
-    ax.set_ylabel('D1 miss rate en lecturas (%)')
-    ax.set_title(f'Tasa de fallo de cache L1 - {maq}')
-    ax.grid(True, axis='y', alpha=0.3)
-    for b, v in zip(barras, valores):
-        ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f'{v:.1f}%',
-                ha='center', va='bottom', fontsize=8)
+        # Panel izquierdo: tasa de fallo de lectura
+        ax = axes[i][0]
+        valores = [buscar(maq, v, t, 'D1_rate_rd') for v, t in pares]
+        colores = [COLORES[v] for v, _ in pares]
+        barras = ax.bar(range(len(pares)), valores, color=colores,
+                        edgecolor='black', linewidth=0.6)
+        ax.set_xticks(range(len(pares)))
+        ax.set_xticklabels(nombres, fontsize=8)
+        ax.set_ylabel('D1 miss rate en lecturas (%)')
+        ax.set_title(f'Tasa de fallo de cache L1 - {maq}')
+        ax.grid(True, axis='y', alpha=0.3)
+        for b, v in zip(barras, valores):
+            ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f'{v:.1f}%',
+                    ha='center', va='bottom', fontsize=8)
 
-    # Panel derecho: fallos absolutos
-    ax = axes[i][1]
-    valores = [(buscar(maq, v, t, 'D1_misses_rd') or 0) / 1e6 for v, t in pares]
-    barras = ax.bar(range(len(pares)), valores, color=colores,
-                    edgecolor='black', linewidth=0.6)
-    ax.set_xticks(range(len(pares)))
-    ax.set_xticklabels(nombres, fontsize=8)
-    ax.set_ylabel('D1 misses en lecturas (millones)')
-    ax.set_title(f'Fallos de cache L1 - {maq}')
-    ax.grid(True, axis='y', alpha=0.3)
-    for b, v in zip(barras, valores):
-        ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f'{v:.1f}M',
-                ha='center', va='bottom', fontsize=8)
+        # Panel derecho: fallos absolutos
+        ax = axes[i][1]
+        valores = [(buscar(maq, v, t, 'D1_misses_rd') or 0) / 1e6 for v, t in pares]
+        barras = ax.bar(range(len(pares)), valores, color=colores,
+                        edgecolor='black', linewidth=0.6)
+        ax.set_xticks(range(len(pares)))
+        ax.set_xticklabels(nombres, fontsize=8)
+        ax.set_ylabel('D1 misses en lecturas (millones)')
+        ax.set_title(f'Fallos de cache L1 - {maq}')
+        ax.grid(True, axis='y', alpha=0.3)
+        for b, v in zip(barras, valores):
+            ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f'{v:.1f}M',
+                    ha='center', va='bottom', fontsize=8)
 
-plt.tight_layout()
-plt.savefig(f'{BASE}/cache_miss_rate.png', dpi=120)
-plt.close()
-print(f"  -> {BASE}/cache_miss_rate.png")
+    plt.tight_layout()
+    plt.savefig(f'{BASE}/cache_miss_rate.png', dpi=120)
+    plt.close()
+    print(f"  -> {BASE}/cache_miss_rate.png")
 
 
 # --- Grafica 2: comparacion del miss rate entre maquinas ---
 # Compara secuencial vs transpuesto en cada maquina: muestra cuanto le afecta
 # a cada hardware el patron de acceso a memoria.
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-variantes_interes = ['secuencial', 'transpuesto']
-ancho = 0.35
 ETIQUETA_Y = {
     'D1_rate_rd': 'Tasa de fallo L1 en lecturas (%)',
     'D1_misses_rd': 'Fallos de cache L1 en lecturas (millones)',
 }
 
-for panel, (clave, titulo, unidad) in enumerate([
-        ('D1_rate_rd', 'Tasa de fallo de cache L1 (lecturas)', '%'),
-        ('D1_misses_rd', 'Fallos de cache L1 (lecturas)', 'M')]):
-    ax = axes[panel]
-    for i, maq in enumerate(maquinas):
-        for j, variante in enumerate(variantes_interes):
-            valor = buscar(maq, variante, 'T1', clave)
-            if valor is None:
-                continue
-            if clave == 'D1_misses_rd':
-                valor = valor / 1e6
-            x = i + (j - 0.5) * ancho
-            barra = ax.bar(x, valor, ancho, label=f'{maq} - {variante}',
-                           color=COLORES[variante], edgecolor='black', linewidth=0.6,
-                           alpha=0.85 if j == 0 else 0.55)
-            ax.text(barra[0].get_x() + barra[0].get_width() / 2, valor,
-                    f'{valor:.1f}{unidad}', ha='center', va='bottom', fontsize=8)
-    ax.set_xticks(range(len(maquinas)))
-    ax.set_xticklabels(maquinas, fontsize=9)
-    ax.set_ylabel(ETIQUETA_Y[clave])
-    ax.set_title(titulo)
-    ax.grid(True, axis='y', alpha=0.3)
+if len(maquinas_con_cache) >= 1:
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    ancho = 0.35
 
-axes[0].legend(fontsize=8, loc='upper center', bbox_to_anchor=(0.5, -0.08), ncol=2)
-plt.tight_layout()
-plt.savefig(f'{BASE}/cache_miss_rate_maquinas.png', dpi=120, bbox_inches='tight')
-plt.close()
-print(f"  -> {BASE}/cache_miss_rate_maquinas.png")
+    for panel, (clave, titulo, unidad) in enumerate([
+            ('D1_rate_rd', 'Tasa de fallo de cache L1 (lecturas)', '%'),
+            ('D1_misses_rd', 'Fallos de cache L1 (lecturas)', 'M')]):
+        ax = axes[panel]
+        for i, maq in enumerate(maquinas_con_cache):
+            for j, variante in enumerate(['secuencial', 'transpuesto']):
+                valor = buscar(maq, variante, 'T1', clave)
+                if valor is None:
+                    continue
+                if clave == 'D1_misses_rd':
+                    valor = valor / 1e6
+                x = i + (j - 0.5) * ancho
+                barra = ax.bar(x, valor, ancho, label=f'{maq} - {variante}',
+                               color=COLORES[variante], edgecolor='black', linewidth=0.6,
+                               alpha=0.85 if j == 0 else 0.55)
+                ax.text(barra[0].get_x() + barra[0].get_width() / 2, valor,
+                        f'{valor:.1f}{unidad}', ha='center', va='bottom', fontsize=8)
+        ax.set_xticks(range(len(maquinas_con_cache)))
+        ax.set_xticklabels(maquinas_con_cache, fontsize=9)
+        ax.set_ylabel(ETIQUETA_Y[clave])
+        ax.set_title(titulo)
+        ax.grid(True, axis='y', alpha=0.3)
+
+    axes[0].legend(fontsize=8, loc='upper center', bbox_to_anchor=(0.5, -0.08), ncol=2)
+    plt.tight_layout()
+    plt.savefig(f'{BASE}/cache_miss_rate_maquinas.png', dpi=120, bbox_inches='tight')
+    plt.close()
+    print(f"  -> {BASE}/cache_miss_rate_maquinas.png")
 
 
 # --- Grafica 3: footprint de memoria ---
