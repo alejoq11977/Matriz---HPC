@@ -48,27 +48,25 @@ sudo apt install texlive-latex-recommended texlive-fonts-recommended
 
 El benchmark entre las dos máquinas **ya está completo**: la máquina A (Intel
 i5-12450HX, Debian) y la máquina B (AMD Ryzen 5 5500U, Fedora) tienen sus 200
-corridas cada una, y la tabla comparativa de la sección 10 ya está rellenada.
+corridas cada una, y la tabla comparativa de la sección 6 ya está rellenada.
 
 Queda pendiente:
 
 1. **Ajustar la portada** (`portada.tex`): fecha de entrega y, si cambia,
    el título.
 
-2. **Renombrar la carpeta y el PDF** con los nombres finales de los integrantes:
+2. **PDF final**: ya está generado con el nombre que pide el enunciado
+   (`HPCG1-CE02-<Nombre1>-<Nombre2>_<Nombre3>.pdf`). Se regenera con:
    ```
-   mv HPCG1-CE02-Quintero-Quintero_Alvarez HPCG1-CE02-<Nombre1>-<Nombre2>_<Nombre3>
-   mv main.pdf HPCG1-CE02-<Nombre1>-<Nombre2>_<Nombre3>.pdf
+   ./compilar.sh && cp main.pdf "HPCG1-CE02-JoseAlejandroQuinteroGahona-MeycolKleymQuinteroCastaño_MaríaAngélicaAlvarezGiraldo.pdf"
    ```
+   Falta decidir el nombre de la **carpeta** (actualmente
+   `HPCG1-CE02-Quintero-Quintero_Alvarez`).
 
 ## Figuras
 
 | Archivo | Origen |
 |---|---|
 | `comparativa_5_estrategias.png` | `experiments/resultados/caso_de_estudio_2_openmp.png` |
-| `comparativa_4_estrategias.png` | `experiments/resultados/caso_de_estudio_2.png` |
 | `cache_miss_rate.png` | `experiments/resultados/perfilado/cache_miss_rate.png` |
-| `footprint_memoria.png` | `experiments/resultados/perfilado/footprint_memoria.png` |
-| `benchmark_maquinas.png` | `experiments/resultados/benchmark/benchmark_maquinas.png` |
 | `benchmark_rendimiento.png` | `experiments/resultados/benchmark/benchmark_rendimiento.png` |
-| `benchmark_tiempos.png` | `experiments/resultados/benchmark/benchmark_tiempos.png` |
