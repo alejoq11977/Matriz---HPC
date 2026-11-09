@@ -1,0 +1,79 @@
+\section{Los dos algoritmos y su modelo matemático}
+
+\subsection{Método del dartboard}
+
+Se lanza $N$ dardos al azar sobre el cuadrado unidad $[0,1] \times [0,1]$ y se cuentan los que caen dentro del cuarto de circunferencia inscrito, es decir, los que satisfacen
+
+\[
+x^2 + y^2 \leq 1
+\]
+
+con $(x, y)$ las coordenadas uniformes del dardo. La probabilidad de acertar es el cociente entre el área del cuarto de circunferencia y el área del cuadrado:
+
+\[
+p = \frac{\pi/4}{1} = \frac{\pi}{4}
+\]
+
+Si $h$ es el número de aciertos, el estimador de $\pi$ es
+
+\[
+\hat\pi = 4 \cdot \frac{h}{N}
+\]
+
+\subsection{La aguja de Buffon}
+
+Sobre un suelo con franjas paralelas de ancho $t$ se tira una aguja de longitud $l \leq t$ y se cuenta cuántas cruzan alguna línea. La probabilidad de cruzar es
+
+\[
+P = \frac{2l}{\pi t}
+\]
+
+De donde, con $h$ cruces entre $N$ lanzamientos:
+
+\[
+\hat\pi = \frac{2lN}{th}
+\]
+
+En toda la implementación se usa el caso $l = t = 1$, que es el más simple y el que reporta el enunciado, con lo que $\hat\pi = 2N/h$.
+
+La geometría de una tirada es la siguiente: se generan la distancia $x$ del centro de la aguja a la línea más cercana, uniforme en $[0, t/2]$, y el ángulo agudo $\theta$ entre la aguja y las líneas, uniforme en $[0, \pi/2]$. La aguja cruza una línea si
+
+\[
+x \leq \frac{l}{2} \sin\theta
+\]
+
+\subsection{Distribución del error}
+
+Ambos estimadores son no sesgados y su error es asintóticamente normal, con desviación típica proporcional a $1/\sqrt{N}$. Es lo que permite diseñar la validación de efectividad.
+
+Para el \textbf{dartboard}, $\hat\pi = 4h/N$ con $h \sim \text{Binomial}(N, \pi/4)$, de donde
+
+\[
+\text{Var}(\hat\pi) = \frac{16\,p(1-p)}{N} = \frac{\pi(4-\pi)}{N}
+\qquad\Longrightarrow\qquad
+\sigma_{\text{dart}} = \frac{1.6420}{\sqrt{N}}
+\]
+
+Para \textbf{Buffon} con $l = t = 1$, se tiene $P = 2/\pi$ y $\hat\pi = 2N/h$. Aplicando el método delta sobre $\hat\pi = 2/P$:
+
+\[
+\text{Var}(\hat\pi) \approx \frac{4(1-P)}{P^3 N} = \frac{\pi^2(\pi-2)}{2N}
+\qquad\Longrightarrow\qquad
+\sigma_{\text{buff}} = \frac{2.3735}{\sqrt{N}}
+\]
+
+Estas dos desviaciones son las que se usan como referencia en la validación de efectividad de la sección 6: si la media de muchas ejecuciones se aparta de $\pi$ más de $3\sigma$, el algoritmo no está funcionando bien.
+
+\subsection{Consecuencia: el dartboard es un estimador más preciso}
+
+Como $\sigma_{\text{dart}} < \sigma_{\text{buff}}$, \textbf{el dartboard necesita menos muestras para la misma precisión}: la razón es
+
+\[
+\frac{\sigma_{\text{buff}}}{\sigma_{\text{dart}}} = 1.446
+\]
+
+es decir, Buffon necesita unas $1.446^2 \approx 2.09$ veces más muestras que el dartboard para alcanzar la misma desviación típica. Esta ventaja es \emph{independiente} de la velocidad: depende solo del modelo.
+
+\subsection{Consecuencia: el dartboard no usa trigonometría}
+
+La condición del dartboard es un producto y una suma. La de Buffon exige evaluar $\sin\theta$ en cada muestra. Dado que la función seno es de las más costosas de las funciones elementales (decenas de ciclos, frente a unos pocos para una multiplicación), esto anticipa una diferencia de costo por muestra que el perfilado de la sección 6 confirma.

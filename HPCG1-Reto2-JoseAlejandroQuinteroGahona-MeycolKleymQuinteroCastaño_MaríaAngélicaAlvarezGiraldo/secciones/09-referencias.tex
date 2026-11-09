@@ -1,0 +1,25 @@
+\section{Referencias}
+
+\begin{itemize}
+    \item \textbf{Buffon, G.-L. (1777)} --- \textit{Essai sur la théorie de la probabilité}. Formulación original del problema de la aguja. Referencia secundaria en \texttt{Buffon's needle problem}, Wikipedia.
+
+    \item \textbf{Jörg Arndt y Christoph Haenel} --- \textit{Pi -- Unleashed: Exploring the infinite}, Springer. Capitulado 1, pág. 39: método del dartboard para la estimación de $\pi$, con implementación de referencia en C. Disponible en \texttt{books.google.com}.
+
+    \item \textbf{Blackman, D. y Vigna, S.} --- \textit{Scrambled Linear Pseudorandom Number Generators}, ACM Transactions on Mathematical Software, 47(4), 2021. Referencia del generador \texttt{xoshiro256**} y del mezclador \texttt{SplitMix64} empleados.
+
+    \item \textbf{OpenMP Application Programming Interface Examples, Version 6.0.1 (noviembre 2025)} --- ejemplos oficiales de la API OpenMP. Secciones 3.1 (\texttt{ploop.1.c}), 3.8 (\texttt{collapse.1.c}) y 5.3.5 (\texttt{task\_dep.5.c}) utilizados en el análisis de opciones de paralelización.
+
+    \item \textbf{OpenMP Application Programming Interface Specification, Version 6.0 (noviembre 2024)} --- definición de las directivas, cláusulas \texttt{reduction}, \texttt{schedule} y \texttt{num\_threads}, y de la semántica de las variables compartidas y privadas.
+
+    \item \textbf{GNU \texttt{gprof}} --- perfilador por muestreo con instrumentación en tiempo de compilación (\texttt{-pg}). Manual en \texttt{sourceware.org/binutils/docs}.
+
+    \item \textbf{Valgrind: \texttt{cachegrind}} --- simulador de caché del proyecto Valgrind. Documentación en \texttt{valgrind.org/docs/manual/cg-manual.html}.
+
+    \item \textbf{POSIX.1-2017 (IEEE Std 1003.1-2017)} --- \texttt{clock\_gettime}, \texttt{getrusage}, \texttt{rand\_r}, \texttt{drand48}. Especificación de la API POSIX utilizada para la medición del tiempo y de la memoria residente.
+
+    \item \textbf{Intel\textsuperscript{\textregistered} 64 and IA-32 Architectures Software Developer's Manual, Volume 2} --- modelo de caché jerárquica, líneas de caché y concepto de \emph{false sharing}.
+
+    \item \textbf{Brendan Gregg --- \textit{Systems Performance}} y su blog \texttt{brendangregg.com} --- referencias sobre las herramientas de línea de comandos para rendimiento en Linux y sobre el uso del mínimo de las repeticiones como estimador robusto frente al ruido del sistema.
+
+    \item \textbf{Material del curso de Computación de Alto Rendimiento} --- presentaciones y grabaciones de clase (OpenMP, benchmark, profiling) utilizadas como referencia conceptual durante el desarrollo del reto.
+\end{itemize}

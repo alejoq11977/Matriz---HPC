@@ -1,0 +1,36 @@
+\section{Conclusiones}
+
+\subsection{Hallazgos}
+
+\begin{enumerate}
+    \item \textbf{El generador de números aleatorios es el cuello de botella, no la aritmética}. GProf atribuye más de la mitad del tiempo muestreado a \texttt{rng\_double} en ambos algoritmos. Esto invierte la intuición de las aplicaciones de álgebra densa y explica por qué el paralelismo rinde bien: el trabajo por muestra es independiente, solo el generador es compartido.
+
+    \item \textbf{El dartboard domina a Buffon en las dos dimensiones}. Es 5.5 veces más rápido por muestra (2.95\,ns contra 16.30\,ns, con 65 instrucciones contra 136) porque no necesita evaluar $\sin\theta$, y además es un estimador más preciso: su desviación típica es $1.642/\sqrt{N}$ contra $2.374/\sqrt{N}$, es decir, Buffon necesita unas 2.09 veces más muestras para la misma exactitud.
+
+    \item \textbf{El perfilado de memoria explica el cambio de comportamiento respecto del caso de estudio 2}. Con una tasa de fallo de caché L1 del 0.0\% frente al 22.4\% de la multiplicación de matrices, el conjunto de trabajo cabe en la L1 y los hilos no compiten por la caché. Por eso aquí el paralelismo escala mucho mejor: 3.85$\times$ con Buffon en un equipo de 12 hilos lógicos.
+
+    \item \textbf{El trabajo más barato por muestra escala peor}. El dartboard, con 2.95\,ns por muestra, consigue solo 1.40$\times$ con dos hilos, mientras Buffon consigue 1.61$\times$. Los costos fijos del paralelismo pesan proporcionalmente más cuando el trabajo es más barato.
+
+    \item \textbf{Un paralelismo correcto en su lógica puede ser nulo en la práctica}. La variante que accede al estado del generador a través de un puntero compartido resulta ser más lenta que la versión serial (0.58--0.73$\times$), porque el compilador no puede demostrar que el acumulador no se solapa con ese estado y lo mantiene en memoria en cada iteración. Copiar el estado a una variable local del hilo recupera un factor de 3.8$\times$ en el dartboard y 2.6$\times$ en Buffon.
+
+    \item \textbf{La validación de efectividad de un método estocástico es por convergencia, no por igualdad}. Con 20 repeticiones por configuración, todas las medias están a menos de $0.4\sigma$ teóricas del valor real de $\pi$, y las dispersiones medidas coinciden con las previstas por la teoría del error.
+\end{enumerate}
+
+\subsection{Limitaciones}
+
+\begin{itemize}
+    \item El benchmark entre las dos máquinas quedó pendiente de completarse con los datos del segundo equipo; la comparación entre máquinas del enunciado está por tanto incompleta.
+    \item Las mediciones de desempeño se realizaron con otros procesos ejecutándose en el equipo (navegador y herramientas de desarrollo), lo que resta precisión. Se reportan los \emph{mínimos} de 10 repeticiones precisamente para reducir el efecto del ruido del sistema, pero un equipo en reposo daría cifras ligeramente mejores.
+    \item GProf es un perfilador por muestreo y su cobertura es parcial: con la instrumentación de \texttt{-pg} el tiempo real de la corrida fue de 21.9\,s para Buffon con $N=10^9$, de los cuales solo 3.44\,s quedaron atribuidos a muestras, porque el overhead de la propia instrumentación no se muestrea. Los porcentajes de GProf son por tanto proporciones del tiempo muestreado, y las cifras absolutas de costo por muestra del documento provienen de mediciones directas con \texttt{clock\_gettime}.
+    \item Se implementaron cuatro variantes de paralelización de un conjunto mayor de opciones posibles. Por ejemplo, no se exploraron las variantes con partición dinámica del trabajo, ni la vectorización manual del predicado del dartboard con instrucciones SIMD, que exigiría desacoplar la generación de números aleatorios del test.
+    \item El perfilado con Cachegrind usa $N = 10^7$ en lugar de $10^9$, por el costo de la simulación. La tasa de fallo es una propiedad del patrón de acceso y no debería variar con $N$, pero no se verificó para los tamaños mayores.
+\end{itemize}
+
+\subsection{Trabajo futuro}
+
+\begin{itemize}
+    \item Completar el benchmark entre las dos máquinas y extenderlo a más equipos para caracterizar el comportamiento del paralelismo en función de la cantidad de núcleos físicos y de la jerarquía de caché.
+    \item Combinar la reducción privada con un \emph{schedule} balanceado dinámicamente, que es lo que la literatura de OpenMP muestra como óptimo cuando el trabajo por iteración es desigual.
+    \item Vectorizar el predicado del dartboard: si se genera un bloque de números aleatorios con un generador SIMD-friendly y se acumulan cuatro resultados booleanos a la vez, el predicado podría evaluarse con instrucciones vectoriales. Es la vía para cerrar la diferencia de costo con Buffon.
+    \item Evaluar el estimador de Buffon con la extensión de Laplace (dos rejillas de líneas perpendiculares), que reduce el número de lanzamientos necesarios para una precisión dada.
+\end{itemize}

@@ -1,0 +1,71 @@
+\section{Análisis de resultados}
+
+\subsection{El cuello de botella es el generador de números aleatorios, no la aritmética}
+
+El perfilado de CPU (tabla~\ref{tab:gprof}) muestra que \texttt{rng\_double} ocupa más de la mitad del tiempo muestreado en ambos algoritmos, y el conteo de llamadas confirma que se invocan dos veces por muestra (una por cada coordenada). La aritmética del algoritmo, en cambio, es marginal: el predicado del dartboard es un producto y una suma.
+
+Esto invierte la intuición habitual. En una aplicación de álgebra densa se esperaría que el costo dominante estuviera en las operaciones de coma flotante, y ahí es donde la paralelización rinde. Aquí el trabajo numérico es tan trivial (65 instrucciones por muestra en el dartboard) que lo que domina es la \emph{generación de los datos de entrada}. De ahí se siguen dos consecuencias:
+
+\begin{enumerate}
+    \item La paralelización funciona bien, porque el generador es \emph{encadenado}: cada muestra consume el estado anterior, así que no se puede paralelizar dentro de una muestra, pero sí entre muestras.
+    \item El diseño del paralelismo debe centrarse en el generador, no en la aritmética: darle a cada hilo su propio estado es la decisión crítica.
+\end{enumerate}
+
+\subsection{Por qué el dartboard es 5.5 veces más rápido que Buffon}
+
+La diferencia de costo por muestra (2.95\,ns frente a 16.30\,ns) tiene dos componentes, ambos medidos:
+
+\begin{itemize}
+    \item \textbf{El \texttt{sin} de Buffon.} El perfil de GProf atribuye al bucle de Buffon un 18.62\% del tiempo muestreado, frente al 8.26\% del dartboard, para una estructura de bucle idéntica. Esa diferencia de unos diez puntos es el costo de evaluar $\sin\theta$ en cada muestra. El dartboard no necesita ninguna función transcendentral.
+    \item \textbf{El doble de instrucciones.} El dartboard ejecuta 65 instrucciones por muestra y Buffon 136, es decir, algo más del doble. La mayor parte de esa diferencia es la implementación de \texttt{sin}.
+\end{itemize}
+
+Esta es una consecuencia directa de la elección del modelo matemático, no de la implementación: el método del dartboard simplemente no necesita trigonometría.
+
+\subsection{Por qué el dartboard también es más preciso}
+
+La desviación teórica es $\sigma_{\text{dart}} = 1.642/\sqrt{N}$ para el dartboard y $\sigma_{\text{buff}} = 2.374/\sqrt{N}$ para Buffon, es decir, Buffon necesita unas 2.09 veces más muestras para la misma precisión.
+
+Esto es relevante para el uso práctico del algoritmo: si se necesita $\pi$ con una tolerancia dada, el dartboard alcanza el objetivo con menos trabajo, y como además cada muestra es más barata, la ventaja combinada es de unas 11 veces menos tiempo para la misma exactitud.
+
+\subsection{Por qué OpenMP escala bien aquí y mal en la multiplicación de matrices}
+
+Este es el punto central del reto, y la respuesta está en el perfilado de memoria.
+
+En el caso de estudio 2, la multiplicación de matrices tenía un conjunto de trabajo de 192\,MB por proceso y una tasa de fallo de caché L1 del 22.4\%. Al paralelizar, los hilos compiten por una jerarquía de caché que ya estaba saturada, y el speedup se quedaba en 3--4.5$\times$.
+
+Aquí el cuadro es el opuesto: la tabla~\ref{tab:cachegrind} muestra una tasa de fallo de L1 del \textbf{0.0\%} en ambos algoritmos. El estado del generador son 32 bytes por hilo y el contador ocupa una línea de caché; en total, menos de 64 bytes de estado mutable por hilo. Todo el conjunto de trabajo cabe en la L1 del núcleo, y los hilos no compiten por nada.
+
+La consecuencia directa se ve en las curvas de escalamiento: Buffon alcanza 3.85$\times$ con 16 hilos en un equipo de 12 hilos lógicos, y el dartboard 2.75$\times$. Son valores de escalamiento \emph{altos} comparados con el 3.11$\times$ del pthreads manual sobre multiplicación de matrices en el mismo equipo, y además el trabajo es mucho más simple.
+
+La comparación de las dos tasas de fallo de caché es, por sí sola, la explicación de por qué el paralelismo rinde de forma tan distinta en los dos casos de estudio.
+
+\subsection{Por qué el dartboard escala peor que Buffon, siendo más rápido}
+
+Un resultado que parece contradictorio: el dartboard es 5.5 veces más rápido pero escala peor (2.75$\times$ contra 3.85$\times$).
+
+La explicación es que el trabajo por muestra es tan pequeño (2.95\,ns) que los costos \emph{fijos} del paralelismo pesan proporcionalmente más. Con $T = 2$ el dartboard solo consigue 1.40$\times$ mientras Buffon consigue 1.61$\times$. A $N = 10^9$ la versión serial del dartboard tarda 2.95\,s, y una fracción de ese tiempo corresponde a gastos que no se paralelizan (arranque del equipo de hilos, sincronización final, planificación).
+
+En otras palabras: \textbf{cuanto más barato es el trabajo por muestra, más overhead relativo hay en el paralelismo}. Es la misma razón por la que los algoritmos de la familia 1 en el caso de estudio 1 rendían mucho mejor con problemas grandes: el overhead se amortiza con más trabajo.
+
+\subsection{El efecto del aliasing: la explicación del problema más importante}
+
+La tabla~\ref{tab:speedup} muestra que la variante \texttt{omp\_alias}, que en realidad es la más natural de escribir, \textbf{es más lenta que la versión serial}: entre 0.58$\times$ y 0.73$\times$ en el dartboard. Lejos de acelerar el programa, la paralelización lo ralentiza.
+
+La causa no está en OpenMP ni en el hardware, sino en el compilador. Cuando el estado del generador se accede como \texttt{rngs[tid]}, el compilador no puede demostrar que las escrituras a través de ese puntero no solapan con el acumulador de aciertos, así que mantiene el acumulador en memoria y lo recarga en cada iteración. El coste de esa recarga anula por completo la ganancia del paralelismo.
+
+La solución, copiar el estado del generador a una variable local del hilo, es de una línea, y el efecto es de \textbf{3.8 veces} en el caso del dartboard y \textbf{2.6 veces} en el de Buffon.
+
+La lección general es que \textbf{paralelizar no es solo escribir la directiva}: hay que asegurarse de que el compilador pueda mantener el estado de cada hilo en registros. Un paralelismo correcto en su lógica puede ser nulo en la práctica si el compilador no puede optimizar el bucle interno.
+
+\subsection{El estado del generador y el determinismo}
+
+Las versiones paralelas no producen exactamente el mismo resultado que la serial, y eso no es un defecto sino una decisión. La sección 3 explicó el porqué: obligar a que las dos versiones generen los mismos números obligaría a pre-generar las $N$ muestras en un arreglo, es decir, a pasar de un conjunto de trabajo de unos pocos bytes a uno de $O(N)$.
+
+La tabla~\ref{tab:validacion} muestra que la diferencia no afecta la corrección: las medias de 20 corridas de la versión serial y de la paralela están ambas dentro de $0.4\sigma$ del valor real, y sus dispersiones coinciden con la teórica. La equivalencia es estadística, que es la que corresponde a un método estocástico.
+
+\subsection{Qué queda por explicar: el benchmark entre máquinas}
+
+\textit{[Pendiente de completar con la segunda máquina. El análisis de la comparación se completará cuando estén los datos del segundo equipo.]}
+
+Lo que sí puede anticiparse con los datos de la máquina A es que el orden de los algoritmos y el orden de las variantes no deberían cambiar: la diferencia entre dartboard y Buffon (5.5$\times$) y el efecto del aliasing (3.8$\times$) son propiedades de la \emph{implementación}, no del hardware. Lo que sí depende del equipo es la \emph{forma} de las curvas de escalamiento, es decir, hasta qué cantidad de hilos rinde el paralelismo, que depende de la cantidad de núcleos físicos y de la jerarquía de caché.

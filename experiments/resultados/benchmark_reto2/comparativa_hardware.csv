@@ -1,0 +1,7 @@
+caracteristica,MaquinaA
+Hostname,Alejandro
+CPU,12th Gen Intel(R) Core(TM) i5-12450HX
+Nucleos logicos,12
+Distribucion,Debian GNU/Linux 13 (trixie)
+Compilador,gcc (Debian 14.2.0-19) 14.2.0
+Flags de compilacion,-Wall -Wextra -O2 -fopenmp

@@ -1,0 +1,32 @@
+==============================================
+INFORMACION DEL EQUIPO - perfilado Monte Carlo
+==============================================
+Fecha: Sun Nov  8 19:16:56 -05 2026
+Hostname: Alejandro
+
+--- CPU ---
+Architecture:                            x86_64
+CPU(s):                                  12
+On-line CPU(s) list:                     0-11
+Vendor ID:                               GenuineIntel
+Model name:                              12th Gen Intel(R) Core(TM) i5-12450HX
+Thread(s) per core:                      2
+Core(s) per socket:                      8
+Socket(s):                               1
+CPU(s) scaling MHz:                      70%
+CPU max MHz:                             4400.0000
+CPU min MHz:                             800.0000
+L1d cache:                               320 KiB (8 instances)
+L1i cache:                               384 KiB (8 instances)
+L2 cache:                                7 MiB (5 instances)
+L3 cache:                                12 MiB (1 instance)
+
+--- Memoria ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       8.6Gi       4.5Gi       1.0Gi       3.8Gi       6.8Gi
+
+--- Compilador ---
+gcc (Debian 14.2.0-19) 14.2.0
+
+N para GProf: 1000000000
+N para Cachegrind: 10000000

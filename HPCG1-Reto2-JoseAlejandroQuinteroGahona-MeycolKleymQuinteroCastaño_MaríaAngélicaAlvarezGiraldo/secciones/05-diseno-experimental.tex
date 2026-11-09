@@ -1,0 +1,62 @@
+\section{Diseño experimental}
+
+\subsection{Variables}
+
+\begin{itemize}
+    \item \textbf{Algoritmo}: dartboard y Buffon.
+    \item \textbf{Variante}: \texttt{serial}, \texttt{omp\_reduccion}, \texttt{omp\_privado}, \texttt{omp\_alias}.
+    \item \textbf{Número de muestras} ($N$): $10^7$, $10^8$ y $10^9$ para el barrido de desempeño; $10^3$ a $10^7$ para el estudio de convergencia.
+    \item \textbf{Cantidad de hilos} ($T$): 1 (serial), 2, 4, 8 y 16.
+    \item \textbf{Repeticiones}: 10 por configuración.
+    \item \textbf{Semilla}: 42 como base.
+\end{itemize}
+
+\subsection{Qué se mide y con qué estimador}
+
+\begin{itemize}
+    \item \textbf{Tiempo de ejecución}: el de la simulación completa ($N$ muestras), medido con \texttt{clock\_gettime(CLOCK\_MONOTONIC\_RAW)}. Al ser el caso de estudio 2, la reserva de memoria y la impresión quedan fuera del cronometrado.
+    \item \textbf{Estimador de tiempo}: se reporta el \textbf{mínimo} de las 10 repeticiones en lugar de la mediana. En un entorno con ruido de sistema (procesos de fondo, preemptiones) el mínimo es el estimador más robusto: una corrida que fue interrumpida es más lenta, y el mínimo captura la ejecución limpia. Se reporta también la mediana en el CSV crudo.
+    \item \textbf{Efectividad}: además del tiempo, cada corrida devuelve $\hat\pi$ y su \emph{z-score} frente al valor real, de modo que el mismo experimento verifica que el algoritmo sigue calculando bien.
+\end{itemize}
+
+\subsection{Validación de efectividad}
+
+Es el punto que el enunciado señala como más delicado, porque los métodos de Monte Carlo \emph{no son deterministas}: dos ejecuciones con la misma entrada dan resultados distintos. La validación no puede ser por igualdad, sino por convergencia.
+
+El protocolo tiene tres partes:
+
+\begin{enumerate}
+    \item \textbf{Antes de medir}, el script ejecuta el modo \texttt{validar}: 20 repeticiones con semillas distintas, y comprueba que la media de $\hat\pi$ está a menos de $3\sigma$ teóricas del valor real de $\pi$, con $\sigma$ según el estimador de la sección 2. Si la validación falla, el script aborta y no cronometra nada.
+    \item \textbf{En cada corrida} se registra el \emph{z-score} individual, de modo que se puede comprobar que ningún resultado individual es un valor atípico.
+    \item \textbf{El estudio de convergencia} muestra $\hat\pi$ en función de $N$ para los dos algoritmos, junto con la banda teórica $\pm 2\sigma$, y permite verificar visualmente que el error real cae dentro de ella.
+\end{itemize}
+
+\subsection{Protocolo de comparabilidad entre máquinas}
+
+Igual que en el caso de estudio 2, para que el benchmark entre equipos sea válido:
+
+\begin{itemize}
+    \item Mismo código fuente (mismo hash de commit) y mismos flags: \texttt{-Wall -Wextra -O2 -fopenmp}.
+    \item Misma semilla base y mismos parámetros.
+    \item Mismo número de repeticiones y mismo estimador (el mínimo).
+    \item Equipo sin otras cargas, conectado a la corriente y con temperatura estable.
+\end{itemize}
+
+\subsection{Herramientas}
+
+\begin{center}
+\begin{tabular}{|l|p{8.5cm}|}
+\hline
+\textbf{Herramienta} & \textbf{Uso} \\
+\hline
+\texttt{gcc} 14.2.0 & Compilador. Flags \texttt{-Wall -Wextra -O2 -fopenmp}. \\
+\texttt{gprof} & Perfilado de CPU por muestreo con instrumentación \texttt{-pg}. \\
+\texttt{valgrind}/\texttt{cachegrind} & Perfilado de memoria: simulación de caché, D1/LL misses. \\
+\texttt{getrusage} & Memoria máxima residente (max RSS). \\
+\texttt{lscpu}, \texttt{free}, \texttt{uname} & Captura automática del hardware. \\
+\texttt{matplotlib} & Generación de las gráficas. \\
+\hline
+\end{tabular}
+\end{center}
+
+Para el perfilado con GProf se usa $N = 10^9$, porque el muestreador trabaja a 100\,Hz y necesita suficiente tiempo de ejecución para acumular muestras representativas. Para Cachegrind se usa $N = 10^7$, porque la simulación es unas 100 veces más lenta que la ejecución nativa. Ambas elecciones se razonan en la sección 7.

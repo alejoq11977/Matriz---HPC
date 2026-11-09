@@ -1,0 +1,5 @@
+algoritmo,variante,threads,max_rss_kb,max_rss_mb
+dartboard,serial,1,2076,2.03
+dartboard,omp_privado,8,2248,2.20
+buffon,serial,1,2372,2.32
+buffon,omp_privado,8,2516,2.46

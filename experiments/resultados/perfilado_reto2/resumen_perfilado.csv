@@ -1,0 +1,3 @@
+algoritmo,I_refs,D_refs,D1_misses,D1_miss_rate_pct,D1_rate_read_pct,LLd_misses,LLd_miss_rate_pct,max_rss_kb,max_rss_mb,funcion_mas_costera,pct_tiempo_gprof
+dartboard,650240566,250081611,2755,0.0,0.0,2063,0.0,2076,2.03,pi_dartboard_serial,8.26
+buffon,1355996456,529823078,2845,0.0,0.0,2132,0.0,2372,2.32,cronometro,0.00

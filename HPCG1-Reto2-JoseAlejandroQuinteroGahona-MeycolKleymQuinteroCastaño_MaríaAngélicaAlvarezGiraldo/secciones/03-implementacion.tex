@@ -1,0 +1,53 @@
+\section{Implementación serial}
+
+\subsection{Estructura del código}
+
+Siguiendo la organización modular del proyecto, el código se separa en un módulo por algoritmo y un módulo común para el generador de números aleatorios:
+
+\begin{center}
+\begin{tabular}{|l|p{8.5cm}|}
+\hline
+\textbf{Archivo} & \textbf{Contenido} \\
+\hline
+\texttt{modules/rng.c} & Generador \texttt{xoshiro256**} con mezcla de semillas \texttt{SplitMix64} \\
+\texttt{modules/pi\_dartboard.c} & Kernel del dartboard: versión serial y versiones OpenMP \\
+\texttt{modules/pi\_buffon.c} & Kernel de Buffon: versión serial y versiones OpenMP \\
+\texttt{modules/pi\_common.c} & Despacho entre variantes, estimador y desviación teórica \\
+\texttt{src/montecarlo.c} & Programa principal y modo de validación \\
+\hline
+\end{tabular}
+\end{center}
+
+El programa principal recibe el algoritmo, el número de muestras, la cantidad de hilos, la variante y la semilla, y devuelve los resultados en formato clave=valor, legible tanto por una persona como por el script de medición.
+
+\subsection{El generador de números aleatorios}
+
+Es la pieza crítica de todo el trabajo, y merece un apartado propio porque condiciona tanto la corrección como el paralelismo.
+
+Se usa \textbf{xoshiro256**}, un generador de 256 bits con periodo $2^{256}$ y excelente calidad estadística, con dos detalles importantes:
+
+\begin{itemize}
+    \item \textbf{Se toman los 53 bits más significativos} para construir el \texttt{double} en $[0,1)$. Los bits bajos de un generador congruencial lineal tienen periodos muy cortos y no sirven.
+    \item \textbf{Las semillas de cada hilo se derivan con \texttt{SplitMix64}} a partir de la semilla base y el índice del hilo. \texttt{SplitMix64} es un mezclador cuyo único propósito es dispersar semillas: garantiza que dos hilos con índices consecutivos (0 y 1, 2 y 3, \ldots) partan de estados muy distintos.
+\end{itemize}
+
+El segundo punto no es un detalle menor. Con un LCG clásico, dos generadores con semillas que difieren en 1 producen flujos \emph{fuertemente correlacionados}, y la estimación de $\pi$ queda sesgada. Es un error fácil de cometer y que invalida silenciosamente el resultado.
+
+\subsection{Determinismo}
+
+Con una misma semilla, la versión serial produce exactamente el mismo resultado en cada ejecución. Esto es lo que permite usar la corrida serial como referencia de las versiones paralelas.
+
+\subsection{Las versiones paralelas no son idénticas, y está bien}
+
+Las versiones con OpenMP reparten las $N$ muestras entre los hilos y cada hilo usa su propio flujo. El conjunto de muestras que se genera depende por lo tanto del número de hilos: la versión serial y la de 8 hilos no estiman $\pi$ con los mismos datos. \emph{Elegimos} que sea así, por dos razones:
+
+\begin{itemize}
+    \item \textbf{Es lo correcto estadísticamente.} Ambas estimaciones son no sesgadas y convergen al mismo valor con la misma tasa de error. Forzar que la versión de 8 hilos genere exactamente los mismos números que la serial obligaría a pre-generar las $N$ muestras en un arreglo, es decir, a pasar de un espacio de trabajo de unos pocos bytes a uno de $O(N)$, que es justo lo que este reto pide optimizar en memoria.
+    \item \textbf{Es lo que hace el paralelismo real.} En una aplicación real, dos hilos, dos procesos o dos máquinas no pueden garantizar el mismo flujo de números aleatorios sin coordinarse, y el costo de esa coordinación superaría el beneficio.
+\end{itemize}
+
+Por eso la comparación entre variantes se hace por equivalencia \emph{estadística} (sección 6), no por igualdad exacta.
+
+\subsection{Modo de validación}
+
+El programa incluye un modo \texttt{validar} que repite la corrida varias veces con semillas distintas y reporta la media, la desviación, el mínimo y el máximo de $\hat\pi$, la desviación teórica, el \emph{z-score} (cuántas $\sigma$ teóricas se aparta la media de $\pi$) y un veredicto. Ese veredicto es el que se usa como control antes de medir tiempos: si un algoritmo no converge, no tiene sentido cronometrarlo.

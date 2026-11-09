@@ -1,0 +1,57 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{microtype}
+% La expansion de fuente requiere fuentes escalables (no disponibles en EC/CM).
+\microtypesetup{expansion=false}
+\setlength{\emergencystretch}{3em}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,
+    urlcolor=blue
+}
+
+\captionsetup[figure]{font=small,labelformat=simple,labelsep=period}
+\captionsetup[table]{font=small,labelformat=simple,labelsep=period}
+
+\renewcommand{\figurename}{Figura}
+\renewcommand{\tablename}{Tabla}
+
+\title{}
+\author{}
+\date{}
+
+\begin{document}
+
+\input{portada}
+
+\newpage
+\tableofcontents
+\newpage
+
+\input{secciones/01-introduccion}
+\input{secciones/02-algoritmos}
+\input{secciones/03-implementacion}
+\input{secciones/04-paralelizacion}
+\input{secciones/05-diseno-experimental}
+\input{secciones/06-resultados}
+\input{secciones/07-analisis}
+\input{secciones/08-conclusiones}
+\input{secciones/09-referencias}
+
+\end{document}

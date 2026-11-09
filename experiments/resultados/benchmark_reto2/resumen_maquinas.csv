@@ -1,0 +1,5 @@
+N,algoritmo,maquina,T_optimo,tiempo_min_(s),tiempo_mediana_(s),ns_por_segundo
+100000000,dartboard,MaquinaA,16,0.060571,0.061459,1.651e+09
+1000000000,dartboard,MaquinaA,8,0.664363,0.674069,1.505e+09
+100000000,buffon,MaquinaA,16,0.452936,0.463468,2.208e+08
+1000000000,buffon,MaquinaA,16,4.201437,4.235809,2.380e+08

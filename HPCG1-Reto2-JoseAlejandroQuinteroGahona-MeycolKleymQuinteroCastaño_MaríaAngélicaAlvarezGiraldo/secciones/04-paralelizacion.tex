@@ -1,0 +1,107 @@
+\section{Análisis de opciones de paralelización y optimización}
+
+Ambos algoritmos tienen la misma estructura: un bucle de $N$ iteraciones, cada una independiente de las demás salvo por un contador acumulado. La estructura es, por tanto, \emph{embarrassingly parallel}, pero con dos recursos compartidos que hay que tratar: el generador de números aleatorios y el contador de aciertos.
+
+\subsection{El generador de números aleatorios: el verdadero cuello de botella}
+
+Lo primero que hay que determinar es qué limita el tiempo de ejecución. Medido con el perfilador, la generación de números aleatorios ocupa \textbf{más de la mitad del tiempo} en ambos algoritmos (sección 6). Eso tiene dos consecuencias:
+
+\begin{enumerate}
+    \item \textbf{La paralelización es PROMISCUA.} Si el trabajo por muestra fuera dominado por aritmética, la granularidad del reparto sería lo importante. Si lo que domina es el generador, lo importante es que \emph{cada hilo tenga su propio generador} y que ese generador se accese de forma eficiente.
+    \item \textbf{El estado del generador es pequeño} (32 bytes), de modo que el conjunto de trabajo cabe sobradamente en la caché L1 de cada núcleo. Esto es la diferencia radical con la multiplicación de matrices, donde el conjunto de trabajo era de 192\,MB.
+\end{enumerate}
+
+Se analizaron cuatro opciones para el generador:
+
+\begin{center}
+\begin{tabular}{|l|p{5.4cm}|p{5.4cm}|}
+\hline
+\textbf{Opción} & \textbf{Ventajas} & \textbf{Inconvenientes} \\
+\hline
+\texttt{rand()} con \texttt{srand()} global &
+Simple, ya está en la biblioteca &
+\textbf{No es thread-safe}: es una condición de carrera y produce resultados incorrectos \\
+\hline
+\texttt{rand\_r()} o \texttt{drand48()} por hilo &
+Thread-safe, estado por hilo &
+Generador de calidad mediocre; con semillas consecutivas los flujos quedan correlacionados \\
+\hline
+\textbf{PRNG propio} (\texttt{xoshiro256**} + \texttt{SplitMix64}) &
+Thread-safe, alta calidad, flujos decorrelacionados, muy rápido &
+Hay que implementarlo (unas 30 líneas) \\
+\hline
+Pre-generar las $N$ muestras en un arreglo &
+Determinismo perfecto entre variantes &
+Memoria $O(N)$: contradice el objetivo de optimización de memoria \\
+\hline
+\end{tabular}
+\end{center}
+
+Se implementó la tercera opción, que es la única que satisface simultáneamente las cuatro requisitos.
+
+\subsection{El contador de aciertos: la optimización de memoria}
+
+El contador es el otro recurso compartido. Se analizaron tres formas de acumular:
+
+\begin{center}
+\begin{tabular}{|l|p{8.5cm}|}
+\hline
+\textbf{Opción} & \textbf{Análisis} \\
+\hline
+Contador compartido con \texttt{atomic} &
+Correcto, pero cada incremento serializa contra todos los hilos. El coste crece con $T$. \\
+\hline
+\texttt{reduction(+:hits)} de OpenMP &
+Correcto y razonablemente eficiente: el runtime da a cada hilo una copia privada y las combina al final. \\
+\hline
+\textbf{Contadores privados por hilo} + reducción final &
+Correcto y el más rápido: el acumulador de cada hilo queda en un registro y solo se escribe una vez al final. \\
+\hline
+\end{tabular}
+\end{center}
+
+Además, los contadores privados se almacenan en un arreglo con \textbf{relleno hasta completar una línea de caché de 64 bytes}. Sin ese relleno, dos contadores consecutivos caen en la misma línea y se produce \emph{false sharing}: cada escritura de un hilo invalida la línea en la caché de los demás, y el paralelismo se pierde aunque el código sea correcto.
+
+\subsection{El hallazgo más interesante: el aliasing}
+
+Al implementar la primera versión con OpenMP se observó un resultado inexplicable: la variante con \texttt{reduction} era \emph{peor que la versión serial}. Investigarlo dio con la causa.
+
+El estado del generador se guardaba en un arreglo en el \emph{heap} y cada hilo accedía a él como \texttt{rngs[tid]}. El compilador, al no poder demostrar que las escrituras a través de ese puntero no solapan con el acumulador, se ve obligado a mantener el acumulador \textbf{en memoria} y recargarlo en cada iteración. El resultado es que el paralelismo se pierde por completo.
+
+La solución es trivial y el efecto, enorme: \textbf{copiar el estado del generador a una variable local del hilo}. Con eso el acumulador vuelve al registro y el speedup aparece.
+
+\begin{center}
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Versión} & \textbf{Tiempo (N=10$^8$, T=8)} & \textbf{Speedup} \\
+\hline
+Serial & 0.3122 s & 1.00$\times$ \\
+Estado del generador por puntero compartido & 0.2973 s & 1.05$\times$ \\
+Estado del generador en copia local del hilo & 0.0633 s & \textbf{4.93$\times$} \\
+\hline
+\end{tabular}
+\end{center}
+
+Se mantuvo la versión con puntero compartido como una \emph{variante medible} (\texttt{omp\_alias}) precisamente para poder cuantificar el efecto en el documento. Es un recordatorio de que la diferencia entre un paralelismo que funciona y uno que no está en si el compilador puede demostrar que el acumulador y el estado del generador no se solapan.
+
+\subsection{La política de reparto del trabajo}
+
+Como el trabajo por iteración es constante, el reparto \textbf{estático} es el adecuado: cada hilo recibe un bloque contiguo de iteraciones y no hay trabajo de coordinación en tiempo de ejecución. Las políticas dinámicas y guiadas solo se justificarían si el costo por iteración variara, que no es el caso.
+
+\subsection{Resumen de las variantes implementadas}
+
+\begin{center}
+\begin{tabular}{|l|p{8.5cm}|}
+\hline
+\textbf{Variante} & \textbf{Descripción} \\
+\hline
+\texttt{serial} & Una sola hebra, sin OpenMP. \\
+\hline
+\texttt{omp\_reduccion} & \texttt{omp for schedule(static) reduction(+:hits)}, con el estado del generador en copia local del hilo. \\
+\hline
+\texttt{omp\_privado} & Contadores privados por hilo con relleno de línea de caché, reducción manual al final, generador en copia local. \\
+\hline
+\texttt{omp\_alias} & Como \texttt{omp\_reduccion} pero con el estado del generador en un arreglo compartido. Contraejemplo medible del problema de aliasing. \\
+\hline
+\end{tabular}
+\end{center}

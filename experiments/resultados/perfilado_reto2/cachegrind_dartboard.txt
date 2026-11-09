@@ -1,0 +1,24 @@
+==347678== Cachegrind, a high-precision tracing profiler
+==347678== Copyright (C) 2002-2024, and GNU GPL'd, by Nicholas Nethercote et al.
+==347678== Using Valgrind-3.24.0 and LibVEX; rerun with -h for copyright info
+==347678== Command: /home/Alejandro/U/HPC/mult_matriz/bin/perfilado_mc/montecarlo dartboard 10000000 1 serial 42
+==347678== 
+--347678-- warning: L3 cache found, using its data for the LL simulation.
+--347678-- warning: specified LL cache: line_size 64  assoc 8  total_size 12,582,912
+--347678-- warning: simulated LL cache: line_size 64  assoc 12  total_size 12,582,912
+==347678== 
+==347678== I refs:        650,240,566
+==347678== I1  misses:          1,705
+==347678== LLi misses:          1,684
+==347678== I1  miss rate:        0.00%
+==347678== LLi miss rate:        0.00%
+==347678== 
+==347678== D refs:        250,081,611  (140,060,487 rd   + 110,021,124 wr)
+==347678== D1  misses:          2,755  (      2,194 rd   +         561 wr)
+==347678== LLd misses:          2,063  (      1,568 rd   +         495 wr)
+==347678== D1  miss rate:         0.0% (        0.0%     +         0.0%  )
+==347678== LLd miss rate:         0.0% (        0.0%     +         0.0%  )
+==347678== 
+==347678== LL refs:             4,460  (      3,899 rd   +         561 wr)
+==347678== LL misses:           3,747  (      3,252 rd   +         495 wr)
+==347678== LL miss rate:          0.0% (        0.0%     +         0.0%  )

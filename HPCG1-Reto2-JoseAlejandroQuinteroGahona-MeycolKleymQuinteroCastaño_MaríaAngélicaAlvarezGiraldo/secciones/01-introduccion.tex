@@ -1,0 +1,23 @@
+\section{Introducción y objetivos}
+
+\subsection*{Qué se hizo}
+
+Este documento presenta el Reto 2 de la materia de Computación de Alto Rendimiento (HPC). La consigna pide cuatro cosas: analizar los algoritmos de Monte Carlo de la \textbf{aguja de Buffon} y del \textbf{dartboard} para calcular $\pi$, implementar las versiones \textbf{seriales} de ambos, analizar las opciones de \textbf{paralelización con OpenMP} junto con optimizaciones de CPU y memoria, y finalmente explicar las \textbf{causas de los resultados de desempeño} obtenidos.
+
+Los dos algoritmos comparten la misma idea: generar muestras aleatorias y contar cuántas cumplen una condición que depende de $\pi$. La diferencia está en la geometría y, sobre todo, en el modelo matemático. El dartboard lanza dardos a un cuadrado y cuenta los que caen dentro de un cuarto de circunferencia; la aguja de Buffon tira agujas sobre franjas paralelas y cuenta las que cruzan una línea.
+
+El trabajo se apoya en lo construido en el caso de estudio anterior: la misma infraestructura de medición, benchmark y perfilado, y las mismas herramientas (GProf, Cachegrind, \texttt{getrusage}). La novedad es el objeto de estudio y el tipo de cuello de botella: si en la multiplicación de matrices el límite era la memoria, aquí el conjunto de trabajo es de unos pocos bytes por hilo y cabe en la caché L1. Ese cambio de escenario es justamente lo que hace el reto interesante.
+
+\subsection*{Objetivos}
+
+\begin{itemize}
+    \item Derivar el modelo matemático de cada algoritmo y la distribución de error de su estimador de $\pi$.
+    \item Implementar las versiones seriales de ambos algoritmos, verificando que convergen al valor real de $\pi$.
+    \item Analizar las opciones de paralelización con OpenMP y las optimizaciones de CPU y memoria aplicables, implementando las más relevantes.
+    \item Medir el desempeño de todas las variantes, comparar los dos algoritmos y explicar las causas de los resultados observados.
+    \item Validar la efectividad de las versiones paralelas, que al ser métodos estocásticos no pueden compararse por igualdad exacta de resultados.
+\end{itemize}
+
+\subsection*{Organización}
+
+La sección 2 presenta los modelos matemáticos. La 3 describe la implementación serial y el generador de números aleatorios. La 4 analiza las opciones de paralelización y optimización. La 5 expone el diseño experimental. La 6 muestra los resultados, la 7 los analiza y la 8 cierra con las conclusiones.
