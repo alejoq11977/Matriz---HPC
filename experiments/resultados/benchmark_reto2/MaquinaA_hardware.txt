@@ -1,7 +1,7 @@
 ==============================================
 BENCHMARK MONTE CARLO - MAQUINA: MaquinaA
 ==============================================
-Fecha de medicion : 2026-11-10 20:02:33 -05
+Fecha de medicion : 2026-11-10 22:58:37 -05
 Hostname          : Alejandro
 Usuario           : Alejandro
 
@@ -24,7 +24,7 @@ Thread(s) per core:                      2
 Core(s) per socket:                      8
 Socket(s):                               1
 Stepping:                                2
-CPU(s) scaling MHz:                      75%
+CPU(s) scaling MHz:                      53%
 CPU max MHz:                             4400.0000
 CPU min MHz:                             800.0000
 BogoMIPS:                                5376.00
@@ -57,7 +57,7 @@ Nucleos logicos detectados: 12
 
 --- Memoria ---
                total        used        free      shared  buff/cache   available
-Mem:            15Gi        10Gi       1.5Gi       1.4Gi       5.4Gi       4.8Gi
+Mem:            15Gi       1.9Gi        12Gi       266Mi       1.9Gi        13Gi
 
 --- Compilador ---
 Compiler: gcc (Debian 14.2.0-19) 14.2.0

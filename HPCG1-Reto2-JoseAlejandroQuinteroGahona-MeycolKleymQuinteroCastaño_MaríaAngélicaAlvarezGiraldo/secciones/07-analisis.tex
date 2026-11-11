@@ -66,21 +66,44 @@ La tabla~\ref{tab:validacion} muestra que la diferencia no afecta la corrección
 
 \subsection{Qué nos enseña la comparación entre las dos máquinas}
 
-El benchmark entre el Intel i5-12450HX y el AMD Ryzen 7 7735HS da tres lecturas.
+El benchmark entre el Intel i5-12450HX y el AMD Ryzen 7 7735HS da tres lecturas, y la tercera es la más interesante.
 
-\textbf{La máquina B es más rápida en las cuatro configuraciones}, con una diferencia porcentual de rendimiento de entre +47\% y +253\% según el algoritmo y el tamaño de muestra. La diferencia no es de clock ni de proceso: el Ryzen 7 7735HS tiene ocho núcleos Zen 3 homogéneos a 4.83\,GHz, mientras que el i5-12450HX combina seis núcleos de alto rendimiento con dos de bajo rendimiento. Para una carga como esta, que es puramente de cómputo y con un conjunto de trabajo minúsculo, la homogeneidad de los núcleos y la frecuencia sostenida pesan más que la arquitectura híbrida.
+\textbf{La máquina B es más rápida en las cuatro configuraciones}, con una diferencia porcentual de rendimiento que va del +32\% en el dartboard hasta el +162\% en Buffon.
 
-\textbf{La máquina B además escala mucho mejor.} El speedup máximo es de 6.89$\times$ en el dartboard y 9.56$\times$ en Buffon, contra 2.80$\times$ y 3.67$\times$ de la máquina A. La diferencia es la misma que se explicó antes: al paralelizar, los hilos de la A terminan ejecutándose también sobre los núcleos de bajo rendimiento, que son mucho más lentos, y el promedio del equipo se degrada. En la B, los ocho núcleos físicos son equivalentes, de modo que añadir hilos hasta agotarlos mantiene el rendimiento por hilo.
+\textbf{La máquina B además escala mucho mejor.} El speedup máximo es de 6.89$\times$ en el dartboard y 9.56$\times$ en Buffon, contra 4.70$\times$ y 3.96$\times$ de la máquina A. La diferencia es la misma que se explicó antes: al paralelizar, los hilos de la A terminan ejecutándose también sobre sus dos núcleos de bajo rendimiento, que son mucho más lentos, y el promedio del equipo se degrada. En la B, los ocho núcleos físicos son equivalentes, de modo que añadir hilos hasta agotarlos mantiene el rendimiento por hilo.
 
-Un detalle fino: en la máquina B el mejor $T$ para el dartboard es 8, no 16. Con ocho núcleos físicos y dieciséis hilos lógicos, los últimos ocho hilos se ejecutan gracias a \emph{simultaneous multithreading} sobre núcleos que ya están ocupados, y no aportan trabajo nuevo sino contención. Como el dartboard tiene el trabajo más barato por muestra de los dos algoritmos, es el que primero sufre ese efecto.
+\textbf{Y lo más relevante: el rendimiento por núcleo es prácticamente idéntico en las dos máquinas.} En la versión serial, el dartboard cuesta 2.755\,ns por muestra en la A y 2.782\,ns en la B, una diferencia del 0.9\%. Lo mismo ocurre con Buffon: 12.205\,ns frente a 12.248\,ns, un 0.4\%. Es decir, \textbf{las dos CPUs ejecutan el mismo trabajo con la misma velocidad por núcleo}, y toda la diferencia de rendimiento parallelo proviene de la estructura de los núcleos.
 
-\subsection{Una salvedad sobre el estado del sistema}
+Eso convierte la comparación en un experimento muy limpio: con el mismo compilador, el mismo sistema operativo y el mismo algoritmo, la única variable que cambia es el número de núcleos \emph{homogéneos} disponibles, y esa sola variable explica que la máquina B quadruple el speedup del dartboard.
 
-Los números de la máquina A se midieron con el equipo en uso habitual (navegador y herramientas de desarrollo abiertos, con un \emph{load average} de entre 5 y 9 durante la medición), mientras que la máquina B estaba dedicada exclusivamente a la ejecución del benchmark. Eso sesga a la baja el speedup medido en la máquina A y, por tanto, exagera la ventaja de la B.
+Un detalle fino: en la máquina B el mejor $T$ para el dartboard es 8, no 16. Con ocho núcleos físicos y dieciséis hilos lógicos, los últimos ocho hilos se ejecutan gracias a \emph{simultaneous multithreading} sobre núcleos que ya están ocupados, y no aportan trabajo nuevo sino contención. Como el dartboard tiene el trabajo más barato por muestra de los dos algoritmos, es el que primero sufre ese efecto. En Buffon, cuyo trabajo por muestra es cuatro veces mayor, el \(T=16\) sí conviene.
 
-El efecto se ve en la propia consistencia interna de los datos: en la máquina B el costo por muestra del dartboard es de 0.404\,ns en $N = 10^8$ y de 0.413\,ns en $N = 10^9$, una variación del 2\%. En la máquina A los mismos valores son 0.595\,ns y 1.068\,ns, una variación del 79\%. Un algoritmo de costo constante por muestra no debería presentar esa dispersión: la diferencia procede del ruido del sistema, no del algoritmo.
+\subsection{Consistencia interna de las mediciones}
 
-Por eso la comparación entre máquinas debe leerse con esa reserva, y por eso el protocolo de la sección 5 insiste en medir con el equipo en reposo. Reejecutar la máquina A sin procesos de fondo es la forma de cerrar el dato.
+Un control de calidad que vale la pena mencionar: el costo por muestra de un algoritmo de este tipo no debe depender de \(N\), porque el trabajo de cada muestra es el mismo. Medido en las dos máquinas:
+
+\begin{center}
+\begin{tabular}{|l|c|r|r|c|}
+\hline
+\textbf{Máquina} & \textbf{Algoritmo} & \textbf{ns/muestra (N=10⁸)} & \textbf{ns/muestra (N=10⁹)} & \textbf{Variación} \\
+\hline
+A & dartboard & 2.755 & 2.737 & 0.7\% \\
+A & Buffon & 12.205 & 12.191 & 0.1\% \\
+B & dartboard & 2.782 & 2.846 & 2.3\% \\
+B & Buffon & 12.248 & 12.379 & 1.1\% \\
+\hline
+\end{tabular}
+\caption{Dispersión del costo por muestra entre dos tamaños de muestra.}
+\label{tab:consistencia}
+\end{center}
+
+Todas las variaciones están por debajo del 2.5\%, lo que indica que las mediciones son estables y que el ruido del sistema está controlado. Este control fue lo que permitió detectar el problema que se menciona a continuación.
+
+\subsection{Una nota metodológica: el estado del sistema importa}
+
+Durante la primera vuelta de mediciones, la máquina A se midió con el equipo en uso habitual, con procesos ajenos en ejecución (\emph{load average} de entre 5 y 9). Bajo esa condición el speedup del dartboard con 8 hilos era de 2.80$\times$, frente a los 4.70$\times$ que se miden con el equipo en reposo. La señal de que había un problema aparecía en la propia consistencia interna: el costo por muestra del dartboard variaba un 79\% entre \(N = 10^8\) y \(N = 10^9\), cuando no debería variar en absoluto.
+
+La lección es que \textbf{el mínimo de las repeticiones, aunque es el estimador más robusto frente al ruido, no alcanza si el ruido es constante}: si hay procesos ajenos consumiendo CPU de forma sostenida, todos los hilos paralelos compiten con ellos por los núcleos físicos y el speedup se reduce de verdad, no solo se distorsiona la medida. La única forma de evitarlo es medir con el equipo en reposo, que es lo que hizo la segunda vuelta de mediciones y lo que reportan las tablas de esta sección.
 
 \subsection{Qué se mantiene igual entre máquinas}
 
