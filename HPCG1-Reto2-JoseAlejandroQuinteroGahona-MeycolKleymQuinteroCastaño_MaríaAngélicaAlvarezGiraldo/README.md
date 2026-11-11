@@ -66,22 +66,30 @@ sudo apt install texlive-latex-recommended texlive-fonts-recommended
 
 ## Antes de entregar
 
-1. **Completar el benchmark entre las dos máquinas.** Falta la máquina B:
+El benchmark entre las dos máquinas **ya está completo** (máquina A: Intel
+i5-12450HX / Debian 13; máquina B: AMD Ryzen 7 7735HS / Debian 13, mismo
+gcc 14.2.0).
+
+Queda pendiente:
+
+1. **Repetir la medición de la máquina A con el equipo en reposo.** La
+   corrida actual se hizo con procesos ajenos en ejecución y eso subestima
+   su speedup. Es el único ajuste pendiente de datos:
    ```bash
-   bash experiments/bench_montecarlo.sh MaquinaB 100000000 1000000000
+   bash experiments/bench_montecarlo.sh MaquinaA 100000000 1000000000
+   python3 experiments/plot_benchmark_montecarlo.py
    ```
-   Después copiar `experiments/resultados/benchmark_reto2/` de vuelta y correr
-   `python3 experiments/plot_benchmark_montecarlo.py`.
+   Después copiar la figura regenerada a `figuras/benchmark_maquinas.png`.
 
-2. **Rellenar** la tabla `tab:benchmark-maquinas` y la subsección
-   7.8 de `secciones/07-analisis.tex` con los datos de la máquina B.
+2. **Opcional**: perfilar en la máquina B para comparar la tasa de fallo de
+   caché entre las dos jerarquías:
+   ```bash
+   bash experiments/perfilar_montecarlo.sh
+   ```
 
-3. **Regenerar la figura** `figuras/benchmark_maquinas.png` copiándola de
-   `experiments/resultados/benchmark_reto2/`.
+3. **Ajustar la portada** (`portada.tex`): fecha de entrega.
 
-4. **Ajustar la portada** (`portada.tex`): fecha de entrega.
-
-5. **Regenerar el PDF final** con el nombre del enunciado:
+4. **Regenerar el PDF final** con el nombre del enunciado:
    ```bash
    ./compilar.sh && cp main.pdf "HPCG1-Reto2-JoseAlejandroQuinteroGahona-MeycolKleymQuinteroCastaño_MaríaAngélicaAlvarezGiraldo.pdf"
    ```

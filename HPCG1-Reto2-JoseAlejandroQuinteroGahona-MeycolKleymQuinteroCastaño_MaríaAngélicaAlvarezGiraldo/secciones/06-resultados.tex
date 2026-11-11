@@ -168,30 +168,57 @@ Con $N = 10^9$, el dartboard tarda 2.953\,s (2.95\,ns por muestra) y Buffon 16.3
 
 \subsection{Benchmark entre las dos máquinas}
 
-\textit{[Pendiente de completar con la segunda máquina. La tabla y la gráfica quedan listas para ser rellenadas con los resultados del segundo equipo.]}
+Las dos máquinas son hardware realmente distinto: distinto fabricante, distinta arquitectura de CPU, distinta jerarquía de caché y distinta cantidad de núcleos. Todo lo demás se mantiene igual: la misma distribución (Debian 13), el \emph{mismo} compilador (\texttt{gcc} 14.2.0) y los mismos flags.
 
-La tabla~\ref{tab:benchmark-maquinas} y la figura~\ref{fig:benchmark-maquinas} se llenan con la salida de \texttt{experiments/bench\_montecarlo.sh} ejecutado en cada equipo.
+\begin{center}
+\small
+\begin{tabular}{|l|c|l|l|}
+\hline
+\textbf{Característica} & \textbf{Máquina A} & \textbf{Máquina B} & \\
+\hline
+CPU & Intel Core i5-12450HX & AMD Ryzen 7 7735HS & \\
+ & (Alder Lake, híbrido) & (Zen 3, homogéneo) & \\
+Núcleos físicos / lógicos & 8 / 12 & 8 / 16 & \\
+Caché L1d & 320 KiB (8 inst.) & 256 KiB (8 inst.) & \\
+Caché L2 & 7 MiB (5 inst.) & 4 MiB (8 inst.) & \\
+Caché L3 & 12 MiB (1 inst.) & 16 MiB (1 inst.) & \\
+Frecuencia máxima & 4.40 GHz & 4.83 GHz & \\
+Memoria RAM & 15 GiB & 14 GiB & \\
+Sistema operativo & Debian GNU/Linux 13 & Debian GNU/Linux 13 & \\
+Compilador & gcc 14.2.0 & gcc 14.2.0 & \\
+Flags & \texttt{-Wall -O2 -fopenmp} & \texttt{-Wall -O2 -fopenmp} & \\
+\hline
+\end{tabular}
+\caption{Hardware de las dos máquinas del benchmark.}
+\label{tab:hardware-benchmark}
+\end{center}
+
+La tabla~\ref{tab:benchmark-maquinas} compara el desempeño. La columna de diferencia porcentual usa la fórmula de la sección 3, $\%\Delta = (R_B - R_A)/R_A \times 100$ con $R = 1/T$ del mejor caso de cada máquina.
 
 \begin{table}[ht]
 \centering
 \small
-\begin{tabular}{|l|l|r|r|r|r|r|}
+\begin{tabular}{|l|c|r|r|r|r|r|}
 \hline
-\textbf{Algoritmo} & \textbf{Máquina} & \textbf{N} & \textbf{T\_opt} & \textbf{tiempo (s)} & \textbf{ns/muestra} & \textbf{speedup} \\
+\textbf{Algoritmo} & \textbf{N} & \textbf{Máq.} & \textbf{T\_opt} & \textbf{T (s)} & \textbf{Speedup} & \textbf{\%$\Delta$ rend.} \\
 \hline
-dartboard & A & $10^9$ & \textit{(completar)} & & & \\
-dartboard & B & $10^9$ & \textit{(completar)} & & & \\
-buffon & A & $10^9$ & \textit{(completar)} & & & \\
-buffon & B & $10^9$ & \textit{(completar)} & & & \\
+dartboard & $10^8$ & A & 16 & 0.0595 & 4.91$\times$ & \\
+dartboard & $10^8$ & B &  8 & 0.0404 & 6.88$\times$ & +47.2\% \\
+dartboard & $10^9$ & A & 16 & 1.0681 & 2.80$\times$ & \\
+dartboard & $10^9$ & B &  8 & 0.4134 & 6.89$\times$ & +158.4\% \\
+buffon & $10^8$ & A & 16 & 0.4293 & 3.86$\times$ & \\
+buffon & $10^8$ & B & 16 & 0.1218 & 10.06$\times$ & +252.6\% \\
+buffon & $10^9$ & A & 16 & 4.4247 & 3.67$\times$ & \\
+buffon & $10^9$ & B & 16 & 1.2951 & 9.56$\times$ & +241.6\% \\
 \hline
 \end{tabular}
-\caption{Benchmark entre las dos máquinas. La comparación se hace con el mínimo de las repeticiones, igual que en el barrido de desempeño.}
+\caption{Benchmark entre las dos máquinas (mínimo de 10 repeticiones). La columna $\%\Delta$ indica cuánto mayor es el rendimiento de la máquina B respecto de la A.}
 \label{tab:benchmark-maquinas}
 \end{table}
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.95\textwidth]{figuras/benchmark_maquinas.png}
-\caption{Tiempo mínimo de cada máquina para cada algoritmo y tamaño de muestra.}
+\caption{Fila superior: tiempo absoluto de cada máquina. Fila inferior: speedup de OpenMP frente al $T=1$ de la misma máquina. La máquina B es más rápida en las cuatro configuraciones y escala mucho mejor.}
 \label{fig:benchmark-maquinas}
 \end{figure}

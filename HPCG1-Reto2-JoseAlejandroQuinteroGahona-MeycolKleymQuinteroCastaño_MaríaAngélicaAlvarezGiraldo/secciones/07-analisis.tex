@@ -28,23 +28,23 @@ La desviación teórica es $\sigma_{\text{dart}} = 1.642/\sqrt{N}$ para el dartb
 
 Esto es relevante para el uso práctico del algoritmo: si se necesita $\pi$ con una tolerancia dada, el dartboard alcanza el objetivo con menos trabajo, y como además cada muestra es más barata, la ventaja combinada es de unas 11 veces menos tiempo para la misma exactitud.
 
-\subsection{Por qué OpenMP escala bien aquí y mal en la multiplicación de matrices}
+\subsection{El perfilado de memoria: qué cambia y qué no}
 
 Este es el punto central del reto, y la respuesta está en el perfilado de memoria.
 
-En el caso de estudio 2, la multiplicación de matrices tenía un conjunto de trabajo de 192\,MB por proceso y una tasa de fallo de caché L1 del 22.4\%. Al paralelizar, los hilos compiten por una jerarquía de caché que ya estaba saturada, y el speedup se quedaba en 3--4.5$\times$.
+En el caso de estudio 2, la multiplicación de matrices tenía un conjunto de trabajo de 192\,MB por proceso y una tasa de fallo de caché L1 del 22.4\%. Al paralelizar, los hilos compiten por una jerarquía de caché que ya estaba saturada.
 
 Aquí el cuadro es el opuesto: la tabla~\ref{tab:cachegrind} muestra una tasa de fallo de L1 del \textbf{0.0\%} en ambos algoritmos. El estado del generador son 32 bytes por hilo y el contador ocupa una línea de caché; en total, menos de 64 bytes de estado mutable por hilo. Todo el conjunto de trabajo cabe en la L1 del núcleo, y los hilos no compiten por nada.
 
-La consecuencia directa se ve en las curvas de escalamiento: Buffon alcanza 3.85$\times$ con 16 hilos en un equipo de 12 hilos lógicos, y el dartboard 2.75$\times$. Son valores de escalamiento \emph{altos} comparados con el 3.11$\times$ del pthreads manual sobre multiplicación de matrices en el mismo equipo, y además el trabajo es mucho más simple.
+Es importante precisar qué se sigue de ese hecho y qué no. Lo que se sigue es que \textbf{no existe una barrera de memoria} que limite el paralelismo, y por eso en la máquina B, que está dedicada, el escalamiento es excelente: 6.89$\times$ en el dartboard y 9.56$\times$ en Buffon con 8 y 16 hilos respectivamente.
 
-La comparación de las dos tasas de fallo de caché es, por sí sola, la explicación de por qué el paralelismo rinde de forma tan distinta en los dos casos de estudio.
+Lo que \emph{no} se sigue es que el escalamiento deba superar al de la multiplicación de matrices. Medido en la misma máquina A y bajo las mismas condiciones, el dartboard alcanza 2.80$\times$ con 16 hilos frente a los 4.56$\times$ de la multiplicación de matrices con 8 hilos. La razón está en la sección siguiente y no contradice lo anterior: \emph{ausencia de cuello de botella de memoria} no es lo mismo que \emph{trabajo suficiente por muestra}. El dartboard hace 65 instrucciones por muestra; la multiplicación de matrices hace $10^{10}$ operaciones por elemento. Cuando el trabajo por iteración es tan pequeño, el costo fijo de la paralelización pesa proporcionalmente más.
 
 \subsection{Por qué el dartboard escala peor que Buffon, siendo más rápido}
 
-Un resultado que parece contradictorio: el dartboard es 5.5 veces más rápido pero escala peor (2.75$\times$ contra 3.85$\times$).
+Un resultado que parece contradictorio: el dartboard es 5.5 veces más rápido pero escala peor. En la máquina B, con 16 hilos, el dartboard alcanza 6.89$\times$ y Buffon 9.56$\times$; en la máquina A, 2.80$\times$ y 3.67$\times$ respectivamente.
 
-La explicación es que el trabajo por muestra es tan pequeño (2.95\,ns) que los costos \emph{fijos} del paralelismo pesan proporcionalmente más. Con $T = 2$ el dartboard solo consigue 1.40$\times$ mientras Buffon consigue 1.61$\times$. A $N = 10^9$ la versión serial del dartboard tarda 2.95\,s, y una fracción de ese tiempo corresponde a gastos que no se paralelizan (arranque del equipo de hilos, sincronización final, planificación).
+La explicación es que el trabajo por muestra es tan pequeño (2.95\,ns) que los costos \emph{fijos} del paralelismo pesan proporcionalmente más. Con $T = 2$ el dartboard solo consigue 1.40$\times$ en la máquina A mientras Buffon consigue 1.64$\times$. A $N = 10^9$ la versión serial del dartboard tarda 2.95\,s, y una fracción de ese tiempo corresponde a gastos que no se paralelizan (arranque del equipo de hilos, sincronización final, planificación).
 
 En otras palabras: \textbf{cuanto más barato es el trabajo por muestra, más overhead relativo hay en el paralelismo}. Es la misma razón por la que los algoritmos de la familia 1 en el caso de estudio 1 rendían mucho mejor con problemas grandes: el overhead se amortiza con más trabajo.
 
@@ -64,8 +64,31 @@ Las versiones paralelas no producen exactamente el mismo resultado que la serial
 
 La tabla~\ref{tab:validacion} muestra que la diferencia no afecta la corrección: las medias de 20 corridas de la versión serial y de la paralela están ambas dentro de $0.4\sigma$ del valor real, y sus dispersiones coinciden con la teórica. La equivalencia es estadística, que es la que corresponde a un método estocástico.
 
-\subsection{Qué queda por explicar: el benchmark entre máquinas}
+\subsection{Qué nos enseña la comparación entre las dos máquinas}
 
-\textit{[Pendiente de completar con la segunda máquina. El análisis de la comparación se completará cuando estén los datos del segundo equipo.]}
+El benchmark entre el Intel i5-12450HX y el AMD Ryzen 7 7735HS da tres lecturas.
 
-Lo que sí puede anticiparse con los datos de la máquina A es que el orden de los algoritmos y el orden de las variantes no deberían cambiar: la diferencia entre dartboard y Buffon (5.5$\times$) y el efecto del aliasing (3.8$\times$) son propiedades de la \emph{implementación}, no del hardware. Lo que sí depende del equipo es la \emph{forma} de las curvas de escalamiento, es decir, hasta qué cantidad de hilos rinde el paralelismo, que depende de la cantidad de núcleos físicos y de la jerarquía de caché.
+\textbf{La máquina B es más rápida en las cuatro configuraciones}, con una diferencia porcentual de rendimiento de entre +47\% y +253\% según el algoritmo y el tamaño de muestra. La diferencia no es de clock ni de proceso: el Ryzen 7 7735HS tiene ocho núcleos Zen 3 homogéneos a 4.83\,GHz, mientras que el i5-12450HX combina seis núcleos de alto rendimiento con dos de bajo rendimiento. Para una carga como esta, que es puramente de cómputo y con un conjunto de trabajo minúsculo, la homogeneidad de los núcleos y la frecuencia sostenida pesan más que la arquitectura híbrida.
+
+\textbf{La máquina B además escala mucho mejor.} El speedup máximo es de 6.89$\times$ en el dartboard y 9.56$\times$ en Buffon, contra 2.80$\times$ y 3.67$\times$ de la máquina A. La diferencia es la misma que se explicó antes: al paralelizar, los hilos de la A terminan ejecutándose también sobre los núcleos de bajo rendimiento, que son mucho más lentos, y el promedio del equipo se degrada. En la B, los ocho núcleos físicos son equivalentes, de modo que añadir hilos hasta agotarlos mantiene el rendimiento por hilo.
+
+Un detalle fino: en la máquina B el mejor $T$ para el dartboard es 8, no 16. Con ocho núcleos físicos y dieciséis hilos lógicos, los últimos ocho hilos se ejecutan gracias a \emph{simultaneous multithreading} sobre núcleos que ya están ocupados, y no aportan trabajo nuevo sino contención. Como el dartboard tiene el trabajo más barato por muestra de los dos algoritmos, es el que primero sufre ese efecto.
+
+\subsection{Una salvedad sobre el estado del sistema}
+
+Los números de la máquina A se midieron con el equipo en uso habitual (navegador y herramientas de desarrollo abiertos, con un \emph{load average} de entre 5 y 9 durante la medición), mientras que la máquina B estaba dedicada exclusivamente a la ejecución del benchmark. Eso sesga a la baja el speedup medido en la máquina A y, por tanto, exagera la ventaja de la B.
+
+El efecto se ve en la propia consistencia interna de los datos: en la máquina B el costo por muestra del dartboard es de 0.404\,ns en $N = 10^8$ y de 0.413\,ns en $N = 10^9$, una variación del 2\%. En la máquina A los mismos valores son 0.595\,ns y 1.068\,ns, una variación del 79\%. Un algoritmo de costo constante por muestra no debería presentar esa dispersión: la diferencia procede del ruido del sistema, no del algoritmo.
+
+Por eso la comparación entre máquinas debe leerse con esa reserva, y por eso el protocolo de la sección 5 insiste en medir con el equipo en reposo. Reejecutar la máquina A sin procesos de fondo es la forma de cerrar el dato.
+
+\subsection{Qué se mantiene igual entre máquinas}
+
+Dos conclusiones del documento son independientes del hardware y no cambian con la máquina del benchmark:
+
+\begin{itemize}
+    \item \textbf{El orden de los algoritmos.} El dartboard es más rápido y más preciso que Buffon porque su modelo no requiere trigonometría. Eso es una propiedad del algoritmo, no del procesador.
+    \item \textbf{El efecto del aliasing.} La variante \texttt{omp\_alias} es más lenta que la serial por una razón de análisis del compilador, idéntica en cualquier máquina que use \texttt{gcc} con el mismo nivel de optimización.
+\end{itemize}
+
+Lo que sí depende del hardware es la \emph{forma} de la curva de escalamiento: hasta qué cantidad de hilos rinde el paralelismo, y dónde aparece la saturación.

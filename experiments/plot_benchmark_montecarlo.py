@@ -137,10 +137,12 @@ def main():
             w.writerow([etiqueta_legible] + [m['hw'].get(clave, '?') for m in maquinas])
     print(f"  -> {BASE}/comparativa_hardware.csv")
 
-    # --- Grafica: tiempo minimo por maquina ---
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+    # --- Grafica: tiempo y speedup por maquina ---
+    fig, axes = plt.subplots(2, 2, figsize=(13, 10))
+
     for idx, algoritmo in enumerate(['dartboard', 'buffon']):
-        ax = axes[idx]
+        # Fila superior: tiempo absoluto
+        ax = axes[0][idx]
         for i, m in enumerate(maquinas):
             xs, ys = [], []
             for n in m['ns']:
@@ -162,8 +164,38 @@ def main():
         ax.grid(True, alpha=0.3)
         ax.legend(fontsize=8)
 
+        # Fila inferior: speedup frente a la version serial de la misma maquina
+        ax = axes[1][idx]
+        for i, m in enumerate(maquinas):
+            ts = sorted({t for (a, _, t) in m['datos'] if a == algoritmo})
+            xs, ys = [], []
+            for t in ts:
+                base = m['datos'].get((algoritmo, m['ns'][0], 1))
+                if not base:
+                    continue
+                for n in m['ns']:
+                    clave = [(algoritmo, n, tt) for (a, nn, tt) in m['datos']
+                             if a == algoritmo and nn == n and tt == t]
+                    if clave:
+                        b = min(m['datos'][(algoritmo, n, 1)])
+                        v = min(min(m['datos'][k]) for k in clave)
+                        xs.append(t)
+                        ys.append(b / v)
+                        break
+            if xs:
+                ax.plot(xs, ys, 'o-', label=f"{m['etiqueta']}",
+                        linewidth=2, color=COLOR_MAQUINA[i % len(COLOR_MAQUINA)],
+                        markersize=8)
+        ax.axhline(1.0, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+        ax.set_xlabel('Cantidad de hilos (T)')
+        ax.set_ylabel('Speedup')
+        ax.set_title(f'{ETIQUETA[algoritmo]} - escalamiento por maquina')
+        ax.set_xticks(sorted({t for m in maquinas for (_, _, t) in m['datos']}))
+        ax.grid(True, alpha=0.3)
+        ax.legend(fontsize=8)
+
     plt.suptitle('Benchmark de los algoritmos de Monte Carlo entre maquinas',
-                 fontsize=13, y=1.02)
+                 fontsize=13, y=1.01)
     plt.tight_layout()
     plt.savefig(f'{BASE}/benchmark_maquinas.png', dpi=120, bbox_inches='tight')
     plt.close()

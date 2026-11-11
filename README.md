@@ -208,7 +208,58 @@ El benchmark compara el **rendimiento** ($R = 1/T$, y su análogo entero GOP/s),
 
 *Speedup interno de OpenMP en cada equipo: la B escala mejor en problemas chicos, la A en problemas grandes.*
 
-## Documento de la entrega
+## Reto 2 — Monte Carlo para pi (rama `reto2`)
+
+Implementación de los dos algoritmos de Monte Carlo para estimar $\pi$ (método del dartboard y aguja de Buffon), con concurrencia OpenMP, perfilado de CPU y memoria, y benchmark entre dos máquinas.
+
+**Rama**: `reto2` (desde `caso-de-estudio-2-openmp`)
+
+```bash
+git clone -b reto2 git@github.com:alejoq11977/Matriz---HPC.git
+```
+
+### Código
+
+| Archivo | Contenido |
+|---|---|
+| `src/montecarlo.c` | Programa principal y modo de validación |
+| `modules/rng.c` | Generador xoshiro256** con mezcla de semillas SplitMix64 |
+| `modules/pi_dartboard.c` | Kernel del dartboard (serial y OpenMP) |
+| `modules/pi_buffon.c` | Kernel de Buffon (serial y OpenMP) |
+| `modules/pi_common.c` | Despacho entre variantes, estimador y σ teórica |
+| `include/pi.h`, `include/rng.h` | Interfaces |
+
+### Scripts
+
+```bash
+bash experiments/medir_montecarlo.sh            # barrido completo (780 corridas, ~35 min)
+bash experiments/bench_montecarlo.sh <etiqueta> # benchmark en cualquier máquina Linux
+bash experiments/perfilar_montecarlo.sh         # GProf (CPU) + Cachegrind (memoria) + RSS
+```
+
+### Resultados principales
+
+| | Dartboard | Buffon |
+|---|---:|---:|
+| Costo por muestra | **2.95 ns** | 16.30 ns |
+| Instrucciones por muestra | 65 | 136 |
+| σ teórica del estimador | 1.6420/√N | 2.3735/√N |
+| D1 miss rate | **0.0%** | **0.0%** |
+
+**Benchmark entre las dos máquinas** (mismo gcc 14.2.0, mismo Debian 13):
+
+| Algoritmo | N | Máquina A (Intel i5-12450HX) | Máquina B (AMD Ryzen 7 7735HS) | %Δ rend. |
+|---|---:|---|---|---:|
+| dartboard | 10⁹ | 1.0681 s (T=16) | **0.4134 s (T=8)** | +158.4% |
+| buffon | 10⁹ | 4.4247 s (T=16) | **1.2951 s (T=16)** | +241.6% |
+
+Speedup máximo: A = 2.80×/3.67× · B = 6.89×/9.56× (dartboard/Buffon).
+
+### Documento
+
+`HPCG1-Reto2-JoseAlejandroQuinteroGahona-MeycolKleymQuinteroCastaño_MaríaAngélicaAlvarezGiraldo/` — 24 páginas, 9 secciones, 7 figuras.
+
+## Documento de la entrega (Caso de estudio 2)
 
 El documento LaTeX del caso de estudio 2 está en **`HPCG1-CE02-Quintero-Quintero_Alvarez/`** (19 páginas compiladas). Es autocontenido: incluye el marco teórico de OpenMP, benchmark y profiling, la justificación de las directivas elegidas citando los ejemplos 3.1, 3.8 y 5.3.5 del PDF oficial, los resultados del perfilado, los de desempeño en ambas máquinas, el análisis y las conclusiones.
 

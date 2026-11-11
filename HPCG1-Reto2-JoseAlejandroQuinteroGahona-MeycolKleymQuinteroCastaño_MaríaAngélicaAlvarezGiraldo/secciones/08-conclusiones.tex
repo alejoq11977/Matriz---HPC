@@ -13,17 +13,18 @@
 
     \item \textbf{Un paralelismo correcto en su lógica puede ser nulo en la práctica}. La variante que accede al estado del generador a través de un puntero compartido resulta ser más lenta que la versión serial (0.58--0.73$\times$), porque el compilador no puede demostrar que el acumulador no se solapa con ese estado y lo mantiene en memoria en cada iteración. Copiar el estado a una variable local del hilo recupera un factor de 3.8$\times$ en el dartboard y 2.6$\times$ en Buffon.
 
+    \item \textbf{La arquitectura de la CPU determina cuánto rinde el paralelismo}. En el benchmark entre el Intel i5-12450HX (arquitectura híbrida de 6 núcleos de alto rendimiento más 2 de bajo rendimiento) y el AMD Ryzen 7 7735HS (8 núcleos Zen 3 homogéneos), la máquina B alcanza speedups de 6.89$\times$ y 9.56$\times$ frente a los 2.80$\times$ y 3.67$\times$ de la A, y su rendimiento es entre un 47\% y un 253\% mayor. Al paralelizar, los hilos de una CPU heterogénea acaban ejecutándose también sobre los núcleos lentos, lo que degrada el promedio del equipo.
+
     \item \textbf{La validación de efectividad de un método estocástico es por convergencia, no por igualdad}. Con 20 repeticiones por configuración, todas las medias están a menos de $0.4\sigma$ teóricas del valor real de $\pi$, y las dispersiones medidas coinciden con las previstas por la teoría del error.
 \end{enumerate}
 
 \subsection{Limitaciones}
 
 \begin{itemize}
-    \item El benchmark entre las dos máquinas quedó pendiente de completarse con los datos del segundo equipo; la comparación entre máquinas del enunciado está por tanto incompleta.
-    \item Las mediciones de desempeño se realizaron con otros procesos ejecutándose en el equipo (navegador y herramientas de desarrollo), lo que resta precisión. Se reportan los \emph{mínimos} de 10 repeticiones precisamente para reducir el efecto del ruido del sistema, pero un equipo en reposo daría cifras ligeramente mejores.
+    \item Las mediciones de la máquina A se realizaron con el equipo en uso habitual, con procesos ajenos en ejecución (\emph{load average} de 5 a 9), mientras que las de la máquina B se hicieron sobre un equipo dedicado. Eso subestima el speedup de la A y exagera la ventaja de la B. La evidencia interna es que el costo por muestra del dartboard varía un 2\% entre $N = 10^8$ y $N = 10^9$ en la máquina B, y un 79\% en la A, cuando el costo por muestra de un algoritmo de este tipo no debería depender de $N$. Repetir la medición de la A con el equipo en reposo es el ajuste pendiente.
     \item GProf es un perfilador por muestreo y su cobertura es parcial: con la instrumentación de \texttt{-pg} el tiempo real de la corrida fue de 21.9\,s para Buffon con $N=10^9$, de los cuales solo 3.44\,s quedaron atribuidos a muestras, porque el overhead de la propia instrumentación no se muestrea. Los porcentajes de GProf son por tanto proporciones del tiempo muestreado, y las cifras absolutas de costo por muestra del documento provienen de mediciones directas con \texttt{clock\_gettime}.
     \item Se implementaron cuatro variantes de paralelización de un conjunto mayor de opciones posibles. Por ejemplo, no se exploraron las variantes con partición dinámica del trabajo, ni la vectorización manual del predicado del dartboard con instrucciones SIMD, que exigiría desacoplar la generación de números aleatorios del test.
-    \item El perfilado con Cachegrind usa $N = 10^7$ en lugar de $10^9$, por el costo de la simulación. La tasa de fallo es una propiedad del patrón de acceso y no debería variar con $N$, pero no se verificó para los tamaños mayores.
+    \item El perfilado con Cachegrind usa $N = 10^7$ en lugar de $10^9$, por el costo de la simulación. La tasa de fallo es una propiedad del patrón de acceso y no debería variar con $N$, pero no se verificó para los tamaños mayores. Tampoco se profileron los algoritmos en la máquina B, de modo que no se puede comparar la tasa de fallo entre las dos cachés.
 \end{itemize}
 
 \subsection{Trabajo futuro}

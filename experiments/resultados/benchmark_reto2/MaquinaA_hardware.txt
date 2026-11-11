@@ -1,7 +1,7 @@
 ==============================================
 BENCHMARK MONTE CARLO - MAQUINA: MaquinaA
 ==============================================
-Fecha de medicion : 2026-11-08 20:05:06 -05
+Fecha de medicion : 2026-11-10 20:02:33 -05
 Hostname          : Alejandro
 Usuario           : Alejandro
 
@@ -24,7 +24,7 @@ Thread(s) per core:                      2
 Core(s) per socket:                      8
 Socket(s):                               1
 Stepping:                                2
-CPU(s) scaling MHz:                      47%
+CPU(s) scaling MHz:                      75%
 CPU max MHz:                             4400.0000
 CPU min MHz:                             800.0000
 BogoMIPS:                                5376.00
@@ -53,12 +53,11 @@ Vulnerability Srbds:                     Not affected
 Vulnerability Tsa:                       Not affected
 Vulnerability Tsx async abort:           Not affected
 Vulnerability Vmscape:                   Mitigation; IBPB before exit to userspace
-
 Nucleos logicos detectados: 12
 
 --- Memoria ---
                total        used        free      shared  buff/cache   available
-Mem:            15Gi       8.7Gi       4.3Gi       1.0Gi       3.9Gi       6.6Gi
+Mem:            15Gi        10Gi       1.5Gi       1.4Gi       5.4Gi       4.8Gi
 
 --- Compilador ---
 Compiler: gcc (Debian 14.2.0-19) 14.2.0
@@ -66,7 +65,7 @@ Compiler: gcc (Debian 14.2.0-19) 14.2.0
 --- Parametros del experimento ---
 N               : 100000000 1000000000
 T               : 1 2 4 8 16
-Iteraciones     : 3
+Iteraciones     : 10
 Variante        : omp_privado
 Semilla         : 42
 Flags de compil.: -Wall -Wextra -O2 -fopenmp
